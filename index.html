@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sistema Personal</title>
+<meta name="description" content="Propósito, bloques semanales, ideas y revisión. Ejecutar sin motivación.">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- Stack: Tailwind (tema custom B/N) + jQuery. Nada más. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        negro: "#000000",
+        humo: "#0A0A0A",      // superficie de tarjetas
+        linea: "#262626",     // bordes
+        blanco: "#FFFFFF",
+        gris: "#8A8A8A",      // texto secundario
+        tenue: "#4A4A4A"      // texto apagado
+      },
+      fontFamily: {
+        sans: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"]
+      }
+    }
+  }
+};
+</script>
+<style type="text/tailwindcss">
+  @layer components {
+    .input { @apply w-full bg-humo border border-linea text-blanco rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blanco focus:ring-1 focus:ring-blanco; }
+    .btn { @apply bg-humo border border-linea text-blanco rounded-lg px-3.5 py-2 text-xs font-mono cursor-pointer hover:border-blanco; }
+    .btn-primary { @apply bg-blanco text-negro border-blanco font-semibold hover:bg-neutral-200; }
+    .card { @apply bg-humo border border-linea rounded-xl p-4; }
+    .label { @apply text-[11px] text-gris tracking-widest font-mono mb-2; }
+    .tab-btn { @apply text-gris px-1 py-2.5 text-xs font-mono tracking-wider border-b-2 border-transparent whitespace-nowrap; }
+    .tab-btn.active { @apply text-blanco border-blanco; }
+  }
+  ::selection { background: #FFFFFF; color: #000000; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body class="bg-negro text-blanco font-sans pb-20 antialiased">
+
+<!-- Overlay ancla -->
+<div id="ancla" class="hidden fixed inset-0 bg-negro/95 z-50 overflow-y-auto px-5 py-12 backdrop-blur-sm" role="dialog" aria-label="Recordatorio de propósito">
+  <div class="max-w-2xl mx-auto">
+    <p class="font-mono text-xs tracking-[0.15em] text-blanco border-b border-linea pb-3">RESPIRA. ESTO ES LO QUE YA DECIDISTE.</p>
+    <p id="ancla-vision" class="text-2xl leading-relaxed mt-6 font-medium whitespace-pre-wrap"></p>
+    <div id="ancla-areas" class="mt-8 space-y-5"></div>
+    <p class="text-gris text-sm mt-10">No necesitas sentirte motivado. Solo necesitas empezar los próximos 2 minutos.</p>
+    <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Volver a ejecutar →</button>
+  </div>
+</div>
+
+<div class="max-w-2xl mx-auto px-4 pt-6">
+  <header class="flex justify-between items-center gap-3 flex-wrap">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight">Sistema personal</h1>
+      <p class="font-mono text-[11px] text-gris tracking-widest">EJECUTAR SIN MOTIVACIÓN</p>
+    </div>
+    <button id="abrir-ancla" class="btn !border-blanco">¿Desenfocado? →</button>
+  </header>
+
+  <nav id="tabs" class="flex gap-5 mt-5 border-b border-linea overflow-x-auto"></nav>
+  <main id="main" class="mt-5 grid gap-3"></main>
+</div>
+
+<script>
+"use strict";
+const KEY = "sistema-personal-v1";
+const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const ORDEN = [1,2,3,4,5,6,0];
+const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+
+const DEFAULT_DATA = {
+  sentido:{
+    vision:"Escribe aquí tu visión: ¿qué persona estás construyendo? ¿Qué vida conecta tus proyectos, tu estudio, la lectura y tus ideas?",
+    areas:[
+      {id:"a1", nombre:"Proyectos", proposito:"¿Por qué importan tus proyectos? Escríbelo en una frase que te recuerde la decisión que ya tomaste."},
+      {id:"a2", nombre:"Estudio", proposito:"Ej: Estudio esto porque quiero habilidades escasas y valiosas que me den libertad."},
+      {id:"a3", nombre:"Ideación", proposito:"Ej: Genero ideas cada semana porque mis proyectos futuros nacen de este espacio."},
+      {id:"a4", nombre:"Lectura de sistemas", proposito:"Ej: Leo sobre sistemas porque quiero pensar mejor, no solo trabajar más."}
+    ]
+  },
+  bloques:[
+    {id:"b1", dia:1, hora:"07:00", area:"Estudio", dur:"60 min"},
+    {id:"b2", dia:1, hora:"19:00", area:"Proyectos", dur:"90 min"},
+    {id:"b3", dia:3, hora:"19:00", area:"Proyectos", dur:"90 min"},
+    {id:"b4", dia:5, hora:"19:00", area:"Proyectos", dur:"90 min"},
+    {id:"b5", dia:0, hora:"10:00", area:"Ideación", dur:"45 min"},
+    {id:"b6", dia:0, hora:"18:00", area:"Revisión semanal", dur:"30 min"}
+  ],
+  ideas:[],
+  revisiones:[]
+};
+
+let data;
+try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+catch(e){ data = structuredClone(DEFAULT_DATA); }
+
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){ console.error(e); }
+  }, 300);
+}
+const uid = () => Math.random().toString(36).slice(2,9);
+const esc = s => $("<i>").text(s ?? "").html().replace(/"/g,"&quot;");
+const hoyISO = () => new Date().toISOString().slice(0,10);
+
+let tab = "semana";
+
+/* ---------- Vistas ---------- */
+function viewSentido(){
+  let h = `
+  <div class="card">
+    <p class="label">VISIÓN GENERAL</p>
+    <textarea class="input" rows="4" data-bind="vision">${esc(data.sentido.vision)}</textarea>
+  </div>`;
+  $.each(data.sentido.areas, function(_, a){
+    h += `
+    <div class="card">
+      <input class="input font-semibold mb-2" value="${esc(a.nombre)}" data-area="${a.id}" data-f="nombre">
+      <textarea class="input" rows="3" data-area="${a.id}" data-f="proposito">${esc(a.proposito)}</textarea>
+      <button class="btn mt-2 !text-[11px] del-area" data-id="${a.id}">Eliminar área</button>
+    </div>`;
+  });
+  h += `<button class="btn" id="add-area">+ Añadir área</button>`;
+  return h;
+}
+
+function viewSemana(){
+  const hoy = new Date().getDay();
+  let h = "";
+  $.each(ORDEN, function(_, d){
+    const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
+    h += `
+    <div class="card ${hoy===d ? "!border-blanco" : ""}">
+      <p class="label ${hoy===d ? "!text-blanco" : ""}">${DIAS[d].toUpperCase()}${hoy===d ? " · HOY" : ""}</p>
+      ${bloques.length===0 ? `<p class="text-tenue text-sm">Sin bloques — día libre o de descanso.</p>` : ""}`;
+    $.each(bloques, function(_, b){
+      h += `
+      <div class="flex gap-2 items-center mb-2 flex-wrap">
+        <input type="time" class="input !w-[110px]" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
+        <input class="input flex-1 !w-auto min-w-[120px]" value="${esc(b.area)}" data-bloque="${b.id}" data-f="area">
+        <input class="input !w-[90px]" value="${esc(b.dur)}" data-bloque="${b.id}" data-f="dur">
+        <button class="btn !px-2.5 del-bloque" data-id="${b.id}">✕</button>
+      </div>`;
+    });
+    h += `<button class="btn !text-[11px] add-bloque" data-dia="${d}">+ Bloque</button></div>`;
+  });
+  h += `<p class="text-gris text-sm">Regla: dentro de un bloque, lo demás no existe.</p>`;
+  return h;
+}
+
+function viewIdeas(){
+  let h = `
+  <div class="card">
+    <p class="label">CAPTURA RÁPIDA</p>
+    <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
+    <button class="btn btn-primary mt-2" id="add-idea">Guardar idea</button>
+  </div>`;
+  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas. El bloque de ideación del domingo es tu momento.</p>`;
+  $.each(data.ideas, function(_, i){
+    h += `
+    <div class="card flex gap-3 items-start">
+      <div class="flex-1">
+        <p class="font-mono text-[11px] text-gris">${esc(i.fecha)}</p>
+        <p class="mt-1 leading-relaxed whitespace-pre-wrap">${esc(i.texto)}</p>
+      </div>
+      <button class="btn !px-2.5 del-idea" data-id="${i.id}">✕</button>
+    </div>`;
+  });
+  return h;
+}
+
+function viewRevision(){
+  let h = `
+  <div class="card">
+    <p class="label !text-blanco">REVISIÓN SEMANAL · 30 MIN</p>
+    <p class="text-sm mb-1.5">¿Qué avancé esta semana?</p>
+    <textarea class="input" rows="3" id="rev-avance"></textarea>
+    <p class="text-sm mt-3 mb-1.5">¿Qué sigue la próxima semana?</p>
+    <textarea class="input" rows="3" id="rev-siguiente"></textarea>
+    <label class="flex gap-2 items-center mt-3 text-sm cursor-pointer">
+      <input type="checkbox" id="rev-releido" class="w-4 h-4 accent-white"> Releí mi documento de sentido
+    </label>
+    <button class="btn btn-primary mt-3" id="add-revision">Guardar revisión</button>
+  </div>`;
+  $.each(data.revisiones, function(_, r){
+    h += `
+    <div class="card">
+      <p class="font-mono text-[11px] text-gris">${esc(r.fecha)}${r.releido ? " · ✓ sentido releído" : ""}</p>
+      ${r.avance ? `<p class="mt-1.5 text-sm"><span class="text-blanco font-semibold">Avancé:</span> <span class="text-gris">${esc(r.avance)}</span></p>` : ""}
+      ${r.siguiente ? `<p class="mt-1 text-sm"><span class="text-blanco font-semibold">Sigue:</span> <span class="text-gris">${esc(r.siguiente)}</span></p>` : ""}
+    </div>`;
+  });
+  return h;
+}
+
+/* ---------- Render ---------- */
+function renderTabs(){
+  const $t = $("#tabs").empty();
+  $.each(TABS, function(_, t){
+    $t.append(`<button class="tab-btn ${tab===t[0] ? "active" : ""}" data-tab="${t[0]}">${t[1]}</button>`);
+  });
+}
+function render(){
+  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
+  $("#main").html(views[tab]());
+}
+
+/* ---------- Eventos (delegación jQuery) ---------- */
+$(function(){
+  renderTabs();
+  render();
+
+  $("#tabs").on("click", ".tab-btn", function(){
+    tab = $(this).data("tab");
+    renderTabs(); render();
+  });
+
+  const $m = $("#main");
+
+  // Sentido
+  $m.on("input", "[data-bind='vision']", function(){ data.sentido.vision = this.value; save(); });
+  $m.on("input", "[data-area]", function(){
+    const a = data.sentido.areas.find(x => x.id === $(this).data("area"));
+    if(a){ a[$(this).data("f")] = this.value; save(); }
+  });
+  $m.on("click", ".del-area", function(){
+    data.sentido.areas = data.sentido.areas.filter(x => x.id !== $(this).data("id"));
+    save(); render();
+  });
+  $m.on("click", "#add-area", function(){
+    data.sentido.areas.push({id:uid(), nombre:"Nueva área", proposito:""});
+    save(); render();
+  });
+
+  // Semana
+  $m.on("input", "[data-bloque]", function(){
+    const b = data.bloques.find(x => x.id === $(this).data("bloque"));
+    if(b){ b[$(this).data("f")] = this.value; save(); }
+  });
+  $m.on("click", ".del-bloque", function(){
+    data.bloques = data.bloques.filter(x => x.id !== $(this).data("id"));
+    save(); render();
+  });
+  $m.on("click", ".add-bloque", function(){
+    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", area:"Proyecto", dur:"60 min"});
+    save(); render();
+  });
+
+  // Ideas
+  $m.on("click", "#add-idea", function(){
+    const t = $("#idea-nueva").val().trim();
+    if(!t) return;
+    data.ideas.unshift({id:uid(), texto:t, fecha:hoyISO()});
+    save(); render();
+  });
+  $m.on("click", ".del-idea", function(){
+    data.ideas = data.ideas.filter(x => x.id !== $(this).data("id"));
+    save(); render();
+  });
+
+  // Revisión
+  $m.on("click", "#add-revision", function(){
+    const avance = $("#rev-avance").val().trim();
+    const siguiente = $("#rev-siguiente").val().trim();
+    const releido = $("#rev-releido").is(":checked");
+    if(!avance && !siguiente) return;
+    data.revisiones.unshift({id:uid(), fecha:hoyISO(), avance, siguiente, releido});
+    save(); render();
+  });
+
+  // Ancla
+  $("#abrir-ancla").on("click", function(){
+    $("#ancla-vision").text(data.sentido.vision);
+    const $a = $("#ancla-areas").empty();
+    $.each(data.sentido.areas, function(_, a){
+      $a.append(`
+        <div class="border-l-2 border-blanco pl-4">
+          <p class="font-mono text-xs text-gris tracking-widest">${esc(a.nombre).toUpperCase()}</p>
+          <p class="mt-1.5 leading-relaxed whitespace-pre-wrap">${esc(a.proposito)}</p>
+        </div>`);
+    });
+    $("#ancla").removeClass("hidden");
+  });
+  $("#cerrar-ancla").on("click", function(){ $("#ancla").addClass("hidden"); });
+});
+
+/* Service worker */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
+  });
+}
+</script>
+</body>
+</html>
