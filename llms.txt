@@ -14,6 +14,18 @@ La app tiene cuatro espacios de trabajo más una sección de datos:
 
 También hay un overlay "¿Desenfocado?" que muestra la visión y los propósitos de cada área a pantalla completa como recordatorio.
 
+## Personalizar mi sistema con una IA (uso principal)
+
+La app está pensada para trabajarse con una IA. El flujo previsto es:
+
+1. En la pestaña **Datos**, pulso **"Copiar prompt para IA"**. Eso copia al portapapeles un prompt que incluye (a) el enlace a este mismo `llms.txt` y (b) mi sistema actual exportado como JSON.
+2. Pego ese prompt en cualquier IA con acceso a internet (para que pueda leer este archivo y conocer el formato exacto).
+3. Converso las mejoras que quiera: reescribir mi visión, reorganizar mis áreas, rediseñar mis bloques semanales, depurar ideas, replantear mis revisiones. Mi esquema es mío: puedo rehacer por completo mi sistema.
+4. Le pido a la IA que me entregue **un único JSON válido para importar** (el formato de export descrito en `## Datos`). Lo guardo como archivo `.json`.
+5. Vuelvo a **Datos → Importar**, elijo el archivo y aplico **Reemplazar** o **Fusionar**.
+
+**Si eres la IA que recibió ese prompt**: lee la sección `## Datos` para el formato exacto, ayuda a la persona a rediseñar su sistema y, al final, devuelve un solo bloque JSON con `app`, `schemaVersion` (el actual), `exportedAt` y `data`, listo para importar. No inventes claves nuevas dentro de `data` salvo que la persona lo pida explícitamente, y respeta el esquema de cada sección.
+
 ## Qué le puedo pedir a un LLM
 
 - Modificar o arreglar funcionalidades existentes (pestañas, campos, comportamiento).

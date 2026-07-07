@@ -215,6 +215,13 @@ function viewRevision(){
 function viewDatos(){
   return `
   <div class="card">
+    <p class="label">PERSONALIZAR CON IA</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Copia un prompt con tu sistema actual y un enlace al contexto de la app (llms.txt). Pégalo en cualquier IA con acceso a internet, conversa las mejoras que quieras a tu sistema y te devolverá un JSON listo para importar aquí abajo.</p>
+    <button class="btn btn-primary" id="prompt-ia">Copiar prompt para IA</button>
+    <p id="ia-status" class="text-sm mt-2 font-mono"></p>
+    <textarea id="ia-fallback" class="input mt-2 hidden" rows="6" readonly></textarea>
+  </div>
+  <div class="card">
     <p class="label">EXPORTAR</p>
     <p class="text-gris text-sm mb-3 leading-relaxed">Descarga una copia de seguridad con todos tus datos (sentido, semana, ideas y revisiones) en un archivo JSON. Guárdalo en un lugar seguro.</p>
     <button class="btn btn-primary" id="export-datos">Exportar copia</button>
@@ -249,7 +256,8 @@ function migrar(store, desde){
 
 let pendingImport = null; // { store, schemaVersion } a la espera de confirmar reemplazar/fusionar
 
-function exportData(){
+// Recopila todas las claves de localStorage de la app, con sus valores parseados como JSON.
+function recopilarStore(){
   const store = {};
   for(let i = 0; i < localStorage.length; i++){
     const k = localStorage.key(i);
@@ -258,12 +266,67 @@ function exportData(){
       try { store[k] = JSON.parse(raw); } catch(e){ store[k] = raw; }
     }
   }
-  const backup = {
+  return store;
+}
+
+// Construye el objeto de backup (misma forma que el archivo de export).
+function construirBackup(){
+  return {
     app: APP_ID,
     schemaVersion: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
-    data: store
+    data: recopilarStore()
   };
+}
+
+// Copia texto al portapapeles con respaldo para contextos sin Clipboard API (p. ej. file://).
+function copiarAlPortapapeles(texto){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(texto);
+  }
+  return new Promise(function(resolve, reject){
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      ok ? resolve() : reject(new Error("execCommand"));
+    } catch(e){ reject(e); }
+  });
+}
+
+// Prompt para pegar en cualquier IA: enlace al llms.txt (contexto) + el sistema actual en JSON.
+function construirPromptIA(){
+  const llmsURL = new URL("./llms.txt", location.href).href;
+  const backup = construirBackup();
+  return 'Quiero personalizar mi app "Sistema Personal" (un sistema personal para ejecutar sin motivación).\n\n' +
+    'Primero lee este archivo para entender qué es la app y el formato EXACTO de sus datos:\n' +
+    llmsURL + '\n\n' +
+    'Abajo está mi sistema actual, exportado en JSON. Ayúdame a mejorarlo: conversemos sobre mi visión, ' +
+    'mis áreas, mis bloques semanales, mis ideas y mis revisiones (puedo cambiar mi esquema por completo). ' +
+    'Cuando estemos de acuerdo, devuélveme UN ÚNICO bloque JSON válido para importar, con el mismo formato ' +
+    '(campos app, schemaVersion, exportedAt y data) y el schemaVersion actual, listo para guardar como archivo ' +
+    '.json e importar en la app.\n\n' +
+    'Mi sistema actual:\n```json\n' + JSON.stringify(backup, null, 2) + '\n```';
+}
+
+function copiarPromptIA(){
+  const prompt = construirPromptIA();
+  copiarAlPortapapeles(prompt).then(function(){
+    $("#ia-status").text("✓ Prompt copiado. Pégalo en tu IA favorita.");
+    $("#ia-fallback").addClass("hidden");
+  }).catch(function(){
+    $("#ia-status").text("No se pudo copiar automáticamente. Copia el texto de abajo:");
+    $("#ia-fallback").val(prompt).removeClass("hidden");
+  });
+}
+
+function exportData(){
+  const backup = construirBackup();
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -479,6 +542,7 @@ $(function(){
   });
 
   // Datos (export / import)
+  $m.on("click", "#prompt-ia", copiarPromptIA);
   $m.on("click", "#export-datos", exportData);
   $m.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
   $m.on("change", "#import-file", importData);
