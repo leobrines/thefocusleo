@@ -221,14 +221,34 @@ function viewDatos(){
   </div>
   <div class="card">
     <p class="label">IMPORTAR</p>
-    <p class="text-gris text-sm mb-3 leading-relaxed">Restaura desde un archivo de copia previamente exportado. <span class="text-blanco">Reemplaza todos los datos actuales.</span></p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Restaura desde un archivo de copia previamente exportado. Podrás elegir entre reemplazar todo o fusionar con lo que ya tienes.</p>
     <input type="file" accept="application/json,.json" id="import-file" class="hidden">
-    <button class="btn" id="import-datos">Importar copia…</button>
+    <button class="btn" id="import-datos">Elegir archivo…</button>
+    <div id="import-preview" class="hidden mt-3 border-t border-linea pt-3"></div>
     <p id="datos-status" class="text-sm mt-3 font-mono whitespace-pre-wrap"></p>
   </div>`;
 }
 
 /* ---------- Export / Import ---------- */
+
+// Migraciones: MIGRATIONS[v] transforma el objeto `data` de la versión v a la v+1.
+// Hoy solo existe la v1, así que no hay migraciones. Cuando cambie el esquema:
+// incrementar SCHEMA_VERSION y añadir MIGRATIONS[1] = (store) => { ...; return store; }.
+const MIGRATIONS = {};
+
+function migrar(store, desde){
+  let v = desde;
+  while(v < SCHEMA_VERSION){
+    const fn = MIGRATIONS[v];
+    if(typeof fn !== "function") throw new Error("Falta la migración de la versión " + v);
+    store = fn(store);
+    v++;
+  }
+  return store;
+}
+
+let pendingImport = null; // { store, schemaVersion } a la espera de confirmar reemplazar/fusionar
+
 function exportData(){
   const store = {};
   for(let i = 0; i < localStorage.length; i++){
@@ -256,37 +276,131 @@ function exportData(){
   $("#datos-status").text("✓ Copia exportada.");
 }
 
+// Cuenta elementos por sección del bloque principal (clave KEY) del store importado.
+function resumenStore(store){
+  const d = (store && store[KEY]) || {};
+  const s = d.sentido || {};
+  const otras = Object.keys(store || {}).filter(k => k !== KEY);
+  return {
+    vision: s.vision && String(s.vision).trim() ? 1 : 0,
+    areas: Array.isArray(s.areas) ? s.areas.length : 0,
+    bloques: Array.isArray(d.bloques) ? d.bloques.length : 0,
+    ideas: Array.isArray(d.ideas) ? d.ideas.length : 0,
+    revisiones: Array.isArray(d.revisiones) ? d.revisiones.length : 0,
+    otras: otras
+  };
+}
+
 function importData(ev){
   const file = ev.target.files && ev.target.files[0];
   ev.target.value = ""; // permite reimportar el mismo archivo
   if(!file) return;
   const $s = $("#datos-status");
+  const $prev = $("#import-preview").addClass("hidden").empty();
+  pendingImport = null;
   const reader = new FileReader();
   reader.onload = function(){
     let backup;
     try { backup = JSON.parse(reader.result); }
     catch(e){ $s.text("✕ Archivo inválido: no es un JSON legible."); return; }
-    if(!backup || backup.app !== APP_ID || !backup.data || typeof backup.data !== "object"){
+    if(!backup || typeof backup !== "object" || backup.app !== APP_ID){
       $s.text("✕ Este archivo no es una copia de Sistema Personal."); return;
     }
-    if(typeof backup.schemaVersion === "number" && backup.schemaVersion > SCHEMA_VERSION){
-      $s.text("✕ La copia usa una versión más nueva del formato. Actualiza la app."); return;
+    const sv = backup.schemaVersion;
+    if(typeof sv !== "number" || !Number.isInteger(sv) || sv < 1){
+      $s.text("✕ La copia no declara un schemaVersion válido."); return;
     }
-    if(!window.confirm("Esto reemplazará todos tus datos actuales por los de la copia. ¿Continuar?")) return;
-    try {
-      Object.keys(backup.data).forEach(function(k){
-        if(k.indexOf(PREFIX) !== 0) return;
-        const v = backup.data[k];
-        localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
-      });
-    } catch(e){ $s.text("✕ No se pudieron guardar los datos (¿almacenamiento lleno?)."); return; }
-    try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
-    catch(e){ data = structuredClone(DEFAULT_DATA); }
-    render();
-    $("#datos-status").text("✓ Datos importados correctamente.");
+    if(sv > SCHEMA_VERSION){
+      $s.text("✕ La copia usa una versión más nueva del formato (v" + sv + "). Actualiza la app."); return;
+    }
+    if(!backup.data || typeof backup.data !== "object"){
+      $s.text("✕ La copia no contiene datos."); return;
+    }
+    let store;
+    try { store = migrar(structuredClone(backup.data), sv); }
+    catch(e){ $s.text("✕ No se pudo migrar la copia: " + e.message); return; }
+
+    pendingImport = { store: store, schemaVersion: sv };
+    const r = resumenStore(store);
+    const extra = r.otras.length ? `\n· otras claves: ${r.otras.join(", ")}` : "";
+    $prev.html(`
+      <p class="text-sm mb-1">La copia contiene:</p>
+      <p class="font-mono text-xs text-gris whitespace-pre-wrap">· visión: ${r.vision ? "sí" : "no"}
+· áreas: ${r.areas}
+· bloques: ${r.bloques}
+· ideas: ${r.ideas}
+· revisiones: ${r.revisiones}${extra}</p>
+      <p class="text-sm mt-3 mb-2">¿Cómo quieres aplicarla?</p>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-primary" id="import-replace">Reemplazar todo</button>
+        <button class="btn" id="import-merge">Fusionar</button>
+        <button class="btn" id="import-cancel">Cancelar</button>
+      </div>
+      <p class="text-tenue text-[11px] font-mono mt-2 leading-relaxed">Reemplazar borra tus datos actuales. Fusionar añade lo que falte; ante conflicto gana la copia.</p>`).removeClass("hidden");
+    $s.text("");
   };
   reader.onerror = function(){ $s.text("✕ No se pudo leer el archivo."); };
   reader.readAsText(file);
+}
+
+// Fusiona dos arrays de objetos con `id`: parte del actual y la copia sobrescribe por id.
+function fusionarPorId(actual, entrante){
+  const map = new Map();
+  (Array.isArray(actual) ? actual : []).forEach(x => { if(x && x.id != null) map.set(x.id, x); });
+  (Array.isArray(entrante) ? entrante : []).forEach(x => { if(x && x.id != null) map.set(x.id, x); });
+  return Array.from(map.values());
+}
+
+// Fusiona el bloque principal (KEY): arrays por id, la visión de la copia gana si no está vacía.
+function fusionarPrincipal(actual, entrante){
+  const out = structuredClone(actual && typeof actual === "object" ? actual : {});
+  out.sentido = out.sentido && typeof out.sentido === "object" ? out.sentido : {};
+  const eSent = (entrante && entrante.sentido) || {};
+  if(typeof eSent.vision === "string" && eSent.vision.trim()) out.sentido.vision = eSent.vision;
+  out.sentido.areas = fusionarPorId(out.sentido.areas, eSent.areas);
+  out.bloques = fusionarPorId(out.bloques, entrante && entrante.bloques);
+  out.ideas = fusionarPorId(out.ideas, entrante && entrante.ideas);
+  out.revisiones = fusionarPorId(out.revisiones, entrante && entrante.revisiones);
+  return out;
+}
+
+function aplicarImport(mode){
+  if(!pendingImport){ return; }
+  const store = pendingImport.store;
+  const $s = $("#datos-status");
+  try {
+    if(mode === "replace"){
+      const aBorrar = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf(PREFIX) === 0) aBorrar.push(k);
+      }
+      aBorrar.forEach(k => localStorage.removeItem(k));
+      Object.keys(store).forEach(function(k){
+        if(k.indexOf(PREFIX) !== 0) return;
+        const v = store[k];
+        localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+      });
+    } else { // merge
+      Object.keys(store).forEach(function(k){
+        if(k.indexOf(PREFIX) !== 0) return;
+        if(k === KEY){
+          let cur;
+          try { cur = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ cur = {}; }
+          localStorage.setItem(KEY, JSON.stringify(fusionarPrincipal(cur, store[k])));
+        } else {
+          const v = store[k]; // la copia gana ante conflicto
+          localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+        }
+      });
+    }
+  } catch(e){ $s.text("✕ No se pudieron guardar los datos (¿almacenamiento lleno?)."); return; }
+
+  try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+  catch(e){ data = structuredClone(DEFAULT_DATA); }
+  pendingImport = null;
+  render(); // re-dibuja la pestaña DATOS (limpia la previsualización)
+  $("#datos-status").text(mode === "replace" ? "✓ Datos reemplazados correctamente." : "✓ Datos fusionados correctamente.");
 }
 
 /* ---------- Render ---------- */
@@ -368,6 +482,13 @@ $(function(){
   $m.on("click", "#export-datos", exportData);
   $m.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
   $m.on("change", "#import-file", importData);
+  $m.on("click", "#import-replace", function(){ aplicarImport("replace"); });
+  $m.on("click", "#import-merge", function(){ aplicarImport("merge"); });
+  $m.on("click", "#import-cancel", function(){
+    pendingImport = null;
+    $("#import-preview").addClass("hidden").empty();
+    $("#datos-status").text("Importación cancelada.");
+  });
 
   // Ancla
   $("#abrir-ancla").on("click", function(){
