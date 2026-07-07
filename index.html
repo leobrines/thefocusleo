@@ -233,11 +233,11 @@ function viewIdeas(){
   let h = `
   <div class="card">
     <p class="label">CAPTURA RÁPIDA</p>
-    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; el bloque de ideación es su momento de trabajarla.</p>
+    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; ya la trabajarás en su momento.</p>
     <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
     <button class="btn btn-primary mt-2" id="add-idea">Guardar y volver al bloque</button>
   </div>`;
-  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas. El bloque de ideación del domingo es tu momento.</p>`;
+  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas capturadas.</p>`;
   $.each(data.ideas, function(_, i){
     h += `
     <div class="card flex gap-3 items-start">
