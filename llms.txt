@@ -1,28 +1,33 @@
-# Sistema Personal
+# Sistema Personal (thefocusleo)
 
-> App web personal para "ejecutar sin motivación": un lugar único donde defines el sentido de lo que haces, organizas tu semana en bloques, capturas ideas y revisas tu avance. La idea de fondo es que no dependas de sentirte motivado: si sabes por qué haces las cosas y cuándo tocan, solo tienes que empezar. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
+> App web personal cuyo propósito NO es la productividad (hacer más), sino el **enfoque** (una cosa a la vez), el **sentido** (que lo que hago conecte con mis valores) y el **impacto** (hacer lo esencial, no lo máximo) — en la línea del esencialismo. Menos, pero mejor. Cada funcionalidad existe solo si hay evidencia científica que la respalde; los textos evitan afirmaciones motivacionales que suenen a dato sin serlo. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
 
 ## Para qué la uso
 
-La app tiene cuatro espacios de trabajo más una sección de datos:
+La app tiene cuatro pestañas principales (Sentido, Semana, Ideas, Revisión) más un **menú hamburguesa** en el header con lo secundario (Configuración, Datos, Acerca):
 
-- **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque.
-- **Semana**: organizo la semana en bloques por día (hora, en qué área trabajo y cuánto dura). La regla es: dentro de un bloque, lo demás no existe. El día actual se resalta.
-- **Ideas**: captura rápida de ideas para proyectos nuevos o actuales, cada una con su fecha. Pensado para el bloque de ideación del domingo.
-- **Revisión**: revisión semanal de 30 min donde anoto qué avancé, qué sigue la próxima semana, y marco si releí mi documento de sentido. Queda un historial.
-- **Datos**: exportar e importar toda mi información como archivo JSON (backup, migrar de dispositivo, etc.).
+- **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque (aplicación de *values affirmation*).
+- **Semana**: organizo la semana en bloques por día (hora, en qué área trabajo y cuánto dura), con el formato "si es [día] a las [hora] → hago [área]" (implementation intentions). La regla es: un solo foco por bloque, lo demás no existe. El día actual se resalta.
+- **Ideas**: captura rápida para sacar la idea de la cabeza y volver al bloque (protege el foco de la interrupción); el bloque de ideación es su momento de trabajarla.
+- **Revisión**: revisión semanal donde registro **qué progreso hice en trabajo que importa**, qué avancé, qué sigue y si releí mi documento de sentido. Queda un historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior).
 
-También hay un overlay "¿Desenfocado?" que muestra la visión y los propósitos de cada área a pantalla completa como recordatorio.
+El menú hamburguesa contiene:
+
+- **Configuración**: preferencias del usuario. Hoy: duración por defecto de un bloque nuevo (editable; es una convención práctica, no una duración "óptima").
+- **Datos**: exportar e importar toda mi información como archivo JSON, y copiar un prompt para personalizar con IA.
+- **Acerca**: el propósito de la app y su base científica (lista de estudios con enlaces al paper y a una explicación amigable).
+
+También hay un overlay "¿Desenfocado?" que muestra a pantalla completa la visión, los propósitos de cada área y los bloques de hoy como recordatorio de que la decisión ya está tomada.
 
 ## Personalizar mi sistema con una IA (uso principal)
 
 La app está pensada para trabajarse con una IA. El flujo previsto es:
 
-1. En la pestaña **Datos**, pulso **"Copiar prompt para IA"**. Eso copia al portapapeles un prompt que incluye (a) el enlace a este mismo `llms.txt` y (b) mi sistema actual exportado como JSON.
+1. En el **menú hamburguesa → Datos**, pulso **"Copiar prompt para IA"**. Eso copia al portapapeles un prompt que incluye (a) el enlace a este mismo `llms.txt` y (b) mi sistema actual exportado como JSON.
 2. Pego ese prompt en cualquier IA con acceso a internet (para que pueda leer este archivo y conocer el formato exacto).
 3. Converso las mejoras que quiera: reescribir mi visión, reorganizar mis áreas, rediseñar mis bloques semanales, depurar ideas, replantear mis revisiones. Mi esquema es mío: puedo rehacer por completo mi sistema.
 4. Le pido a la IA que me entregue **un único JSON válido para importar** (el formato de export descrito en `## Datos`). Lo guardo como archivo `.json`.
-5. Vuelvo a **Datos → Importar**, elijo el archivo y aplico **Reemplazar** o **Fusionar**.
+5. Vuelvo al **menú → Datos → Importar**, elijo el archivo y aplico **Reemplazar** o **Fusionar**.
 
 **Si eres la IA que recibió ese prompt**: lee la sección `## Datos` para el formato exacto, ayuda a la persona a rediseñar su sistema y, al final, devuelve un solo bloque JSON con `app`, `schemaVersion` (el actual), `exportedAt` y `data`, listo para importar. No inventes claves nuevas dentro de `data` salvo que la persona lo pida explícitamente, y respeta el esquema de cada sección.
 
@@ -52,10 +57,13 @@ Actualmente la app usa **una sola clave**:
 
 #### `sistema-personal-v1`
 
-Guarda todo el estado de la app como un único objeto JSON (string). Esquema:
+Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 2):
 
 ```json
 {
+  "config": {
+    "durBloque": "string libre, ej. '60 min' — duración por defecto al crear un bloque"
+  },
   "sentido": {
     "vision": "string — texto libre con la visión general",
     "areas": [
@@ -78,6 +86,7 @@ Guarda todo el estado de la app como un único objeto JSON (string). Esquema:
     {
       "id": "string único",
       "fecha": "YYYY-MM-DD",
+      "progreso": "string — progreso en trabajo que importa",
       "avance": "string",
       "siguiente": "string",
       "releido": true
@@ -88,9 +97,11 @@ Guarda todo el estado de la app como un único objeto JSON (string). Esquema:
 
 Notas de campos:
 
+- `config.durBloque`: preferencia (string libre) usada como duración por defecto al crear un bloque nuevo. Es una convención práctica editable, no una duración prescrita.
 - `dia`: número **0–6 según `Date.getDay()`**, es decir `0 = domingo`, `1 = lunes`, … `6 = sábado`. En la vista la semana se muestra empezando en lunes.
 - `id`: cadena corta única dentro de su array (la app las genera con base36 aleatorio). Sirve como identidad para editar, borrar y para la fusión al importar.
 - `hora`: formato de 24 horas `HH:MM`.
+- `progreso`: campo de la revisión para registrar el progreso hecho en trabajo significativo esa semana. En backups v1 (que no lo tenían) la migración lo rellena como `""`.
 - `releido`: booleano; indica si en esa revisión se releyó el documento de sentido.
 - Las `ideas` y `revisiones` se muestran de más reciente a más antigua.
 
@@ -98,6 +109,7 @@ Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
 
 ```json
 {
+  "config": { "durBloque": "60 min" },
   "sentido": {
     "vision": "Quiero construir habilidades escasas y valiosas que me den libertad para elegir en qué trabajo.",
     "areas": [
@@ -114,7 +126,7 @@ Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
     { "id": "i1", "texto": "Prototipo de app para registrar hábitos por bloques.", "fecha": "2025-02-16" }
   ],
   "revisiones": [
-    { "id": "r1", "fecha": "2025-02-16", "avance": "Cerré el módulo de export.", "siguiente": "Escribir tests del import.", "releido": true }
+    { "id": "r1", "fecha": "2025-02-16", "progreso": "Envié la primera versión usable a un amigo.", "avance": "Cerré el módulo de export.", "siguiente": "Escribir tests del import.", "releido": true }
   ]
 }
 ```
@@ -126,7 +138,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 ```json
 {
   "app": "sistema-personal",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "exportedAt": "2025-02-16T14:30:00.000Z",
   "data": {
     "sistema-personal-v1": { "...": "el objeto descrito arriba, ya parseado como JSON, no como string" }
@@ -137,7 +149,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 Campo por campo:
 
 - `app`: constante `"sistema-personal"`. El import **rechaza** cualquier archivo cuyo `app` no sea exactamente este.
-- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `1`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
+- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `2`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
 - `exportedAt`: fecha/hora ISO 8601 del momento del export.
 - `data`: objeto cuyas claves son **claves de localStorage** (por ahora solo `sistema-personal-v1`) y cuyos valores son el contenido **ya parseado como objeto JSON** (no strings escapados).
 
@@ -151,9 +163,10 @@ Comportamiento del **Import**:
 
 ### Instrucciones directas para el LLM
 
-- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**1**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas. Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
-- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha) y `revisiones` (bitácora semanal). Interpreta cada sección según su propósito descrito arriba.
+- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**2**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config` y `progreso` en cada revisión). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
+- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha) y `revisiones` (bitácora semanal con `progreso`). Interpreta cada sección según su propósito descrito arriba.
 
 ### Historial de schemaVersion
 
-- **v1** (actual): esquema descrito en este documento. No hay migraciones previas.
+- **v1**: primer esquema (`sentido`, `bloques`, `ideas`, `revisiones`).
+- **v2** (actual): se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`): rellena `config` con la duración por defecto y `progreso: ""` en revisiones que no lo tuvieran, sin tocar el resto de los datos.

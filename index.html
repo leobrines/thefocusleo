@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sistema Personal</title>
-<meta name="description" content="Propósito, bloques semanales, ideas y revisión. Ejecutar sin motivación.">
+<meta name="description" content="Enfoque, sentido e impacto. Menos, pero mejor. Cada funcionalidad respaldada por evidencia.">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
@@ -72,8 +72,21 @@ tailwind.config = {
     <p class="font-mono text-xs tracking-[0.15em] text-blanco border-b border-linea pb-3">RESPIRA. ESTO ES LO QUE YA DECIDISTE.</p>
     <p id="ancla-vision" class="text-2xl leading-relaxed mt-6 font-medium whitespace-pre-wrap"></p>
     <div id="ancla-areas" class="mt-8 space-y-5"></div>
-    <p class="text-gris text-sm mt-10">No necesitas sentirte motivado. Solo necesitas empezar los próximos 2 minutos.</p>
+    <div id="ancla-hoy" class="mt-10"></div>
     <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Volver a ejecutar →</button>
+  </div>
+</div>
+
+<!-- Drawer menú (config · datos · acerca) -->
+<div id="menu" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Menú">
+  <div id="menu-backdrop" class="absolute inset-0 bg-negro/80 backdrop-blur-sm"></div>
+  <div class="absolute right-0 top-0 h-full w-[92%] max-w-md bg-negro border-l border-linea overflow-y-auto">
+    <div class="flex justify-between items-center px-4 py-4 border-b border-linea sticky top-0 bg-negro z-10">
+      <p class="font-mono text-xs tracking-[0.15em] text-gris">MENÚ</p>
+      <button id="cerrar-menu" class="btn !px-2.5" aria-label="Cerrar menú">✕</button>
+    </div>
+    <nav id="menu-tabs" class="flex gap-5 px-4 border-b border-linea overflow-x-auto"></nav>
+    <div id="menu-body" class="p-4 grid gap-3"></div>
   </div>
 </div>
 
@@ -86,6 +99,13 @@ tailwind.config = {
     <div class="flex items-center gap-2 flex-wrap">
       <button id="install-header" class="hidden btn btn-primary">↓ Instalar app</button>
       <button id="abrir-ancla" class="btn !border-blanco">¿Desenfocado? →</button>
+      <button id="abrir-menu" class="btn !px-2.5" aria-label="Abrir menú" aria-haspopup="dialog">
+        <span class="block w-4 space-y-[3px]" aria-hidden="true">
+          <span class="block h-[2px] bg-blanco"></span>
+          <span class="block h-[2px] bg-blanco"></span>
+          <span class="block h-[2px] bg-blanco"></span>
+        </span>
+      </button>
     </div>
   </header>
 
@@ -98,12 +118,15 @@ tailwind.config = {
 const KEY = "sistema-personal-v1";
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
-const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"],["datos","DATOS"]];
-const SCHEMA_VERSION = 1;
+const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+const MENU_TABS = [["config","CONFIGURACIÓN"],["datos","DATOS"],["acerca","ACERCA"]];
+const SCHEMA_VERSION = 2;
 const APP_ID = "sistema-personal";
 const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
+const DUR_DEFECTO = "60 min"; // duración por defecto de un bloque nuevo (preferencia, no ciencia)
 
 const DEFAULT_DATA = {
+  config:{ durBloque: DUR_DEFECTO },
   sentido:{
     vision:"Escribe aquí tu visión: ¿qué persona estás construyendo? ¿Qué vida conecta tus proyectos, tu estudio, la lectura y tus ideas?",
     areas:[
@@ -125,8 +148,23 @@ const DEFAULT_DATA = {
   revisiones:[]
 };
 
+// Rellena campos nuevos que un guardado antiguo pueda no tener (config, progreso en revisiones).
+// Idempotente: no pisa datos existentes. Se usa al cargar y como paso de migración v1→v2.
+function normalizar(d){
+  if(!d || typeof d !== "object") return structuredClone(DEFAULT_DATA);
+  if(!d.config || typeof d.config !== "object") d.config = {};
+  if(typeof d.config.durBloque !== "string" || !d.config.durBloque.trim()) d.config.durBloque = DUR_DEFECTO;
+  if(!d.sentido || typeof d.sentido !== "object") d.sentido = structuredClone(DEFAULT_DATA.sentido);
+  if(!Array.isArray(d.sentido.areas)) d.sentido.areas = [];
+  if(!Array.isArray(d.bloques)) d.bloques = [];
+  if(!Array.isArray(d.ideas)) d.ideas = [];
+  if(!Array.isArray(d.revisiones)) d.revisiones = [];
+  d.revisiones.forEach(function(r){ if(r && typeof r.progreso !== "string") r.progreso = ""; });
+  return d;
+}
+
 let data;
-try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+try { data = normalizar(JSON.parse(localStorage.getItem(KEY))); }
 catch(e){ data = structuredClone(DEFAULT_DATA); }
 
 let saveTimer = null;
@@ -141,6 +179,7 @@ const esc = s => $("<i>").text(s ?? "").html().replace(/"/g,"&quot;");
 const hoyISO = () => new Date().toISOString().slice(0,10);
 
 let tab = "semana";
+let menuTab = "config";
 
 /* ---------- Vistas ---------- */
 function viewSentido(){
@@ -163,7 +202,11 @@ function viewSentido(){
 
 function viewSemana(){
   const hoy = new Date().getDay();
-  let h = "";
+  let h = `
+  <div class="card !bg-negro">
+    <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HAGO [ÁREA]</p>
+    <p class="text-gris text-sm leading-relaxed">Decidir de antemano cuándo, dónde y qué duplica la probabilidad de ejecutar. La decisión ya está tomada aquí; a la hora no la negocias, solo apareces.</p>
+  </div>`;
   $.each(ORDEN, function(_, d){
     const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
     h += `
@@ -181,7 +224,7 @@ function viewSemana(){
     });
     h += `<button class="btn !text-[11px] add-bloque" data-dia="${d}">+ Bloque</button></div>`;
   });
-  h += `<p class="text-gris text-sm">Regla: dentro de un bloque, lo demás no existe.</p>`;
+  h += `<p class="text-gris text-sm">Un solo foco por bloque: cuando estás en un bloque, lo demás no existe. Cambiar entre tareas cuesta tiempo y errores, sobre todo en lo complejo.</p>`;
   return h;
 }
 
@@ -189,8 +232,9 @@ function viewIdeas(){
   let h = `
   <div class="card">
     <p class="label">CAPTURA RÁPIDA</p>
+    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; el bloque de ideación es su momento de trabajarla.</p>
     <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
-    <button class="btn btn-primary mt-2" id="add-idea">Guardar idea</button>
+    <button class="btn btn-primary mt-2" id="add-idea">Guardar y volver al bloque</button>
   </div>`;
   if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas. El bloque de ideación del domingo es tu momento.</p>`;
   $.each(data.ideas, function(_, i){
@@ -209,8 +253,11 @@ function viewIdeas(){
 function viewRevision(){
   let h = `
   <div class="card">
-    <p class="label !text-blanco">REVISIÓN SEMANAL · 30 MIN</p>
-    <p class="text-sm mb-1.5">¿Qué avancé esta semana?</p>
+    <p class="label !text-blanco">REVISIÓN SEMANAL</p>
+    <p class="text-sm mb-1.5">¿Qué progreso hiciste esta semana en trabajo que importa?</p>
+    <textarea class="input" rows="3" id="rev-progreso"></textarea>
+    <p class="text-tenue text-[11px] font-mono mt-1.5 leading-relaxed">Ver tu propio progreso es el mayor motor de motivación que existe.</p>
+    <p class="text-sm mt-3 mb-1.5">¿Qué avancé esta semana?</p>
     <textarea class="input" rows="3" id="rev-avance"></textarea>
     <p class="text-sm mt-3 mb-1.5">¿Qué sigue la próxima semana?</p>
     <textarea class="input" rows="3" id="rev-siguiente"></textarea>
@@ -218,19 +265,105 @@ function viewRevision(){
       <input type="checkbox" id="rev-releido" class="w-4 h-4 accent-white"> Releí mi documento de sentido
     </label>
     <button class="btn btn-primary mt-3" id="add-revision">Guardar revisión</button>
+  </div>
+  <div class="card !bg-negro">
+    <p class="text-gris text-sm leading-relaxed">¿Fallaste un día? No pasa nada: perder una oportunidad no afecta la formación del hábito. Solo retoma el siguiente bloque.</p>
   </div>`;
   $.each(data.revisiones, function(_, r){
     h += `
     <div class="card">
       <p class="font-mono text-[11px] text-gris">${esc(r.fecha)}${r.releido ? " · ✓ sentido releído" : ""}</p>
-      ${r.avance ? `<p class="mt-1.5 text-sm"><span class="text-blanco font-semibold">Avancé:</span> <span class="text-gris">${esc(r.avance)}</span></p>` : ""}
+      ${r.progreso ? `<p class="mt-1.5 text-sm"><span class="text-blanco font-semibold">Progreso:</span> <span class="text-gris">${esc(r.progreso)}</span></p>` : ""}
+      ${r.avance ? `<p class="mt-1 text-sm"><span class="text-blanco font-semibold">Avancé:</span> <span class="text-gris">${esc(r.avance)}</span></p>` : ""}
       ${r.siguiente ? `<p class="mt-1 text-sm"><span class="text-blanco font-semibold">Sigue:</span> <span class="text-gris">${esc(r.siguiente)}</span></p>` : ""}
     </div>`;
   });
   return h;
 }
 
-function viewDatos(){
+function viewMenuConfig(){
+  return `
+  <div class="card">
+    <p class="label">DURACIÓN POR DEFECTO DE BLOQUES</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Se usa al crear un bloque nuevo; después puedes editar la duración de cada bloque en la Semana. Es una preferencia práctica: no hay una duración “científicamente óptima”.</p>
+    <input class="input !w-[160px]" value="${esc(data.config.durBloque)}" id="cfg-dur" placeholder="ej. 60 min">
+    <p id="cfg-status" class="text-tenue text-[11px] font-mono mt-2"></p>
+  </div>`;
+}
+
+function viewMenuAcerca(){
+  // Ordenados de mayor a menor solidez de la evidencia.
+  const estudios = [
+    ["Bloques semanales predefinidos",
+      "Planificar de antemano cuándo/dónde/qué aumenta la probabilidad de ejecutar (efecto confirmado en cientos de estudios; magnitud modesta una vez corregido el sesgo de publicación).",
+      [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
+       ["Explicación (EN) · NCI", "https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions"],
+       ["Explicación (ES) · Psicología y Mente", "https://psicologiaymente.com/coach/formula-pasar-accion-lograr-metas"]]],
+    ["Un solo foco por bloque",
+      "Cambiar entre tareas cuesta tiempo y genera errores, sobre todo en tareas complejas.",
+      [["Estudio: Rubinstein, Meyer & Evans (2001)", "https://psycnet.apa.org/doi/10.1037/0096-1523.27.4.763"],
+       ["Explicación (EN) · APA", "https://www.apa.org/topics/research/multitasking"],
+       ["Explicación (ES) · El Tiempo / NYT", "https://www.eltiempo.com/mundo/new-york-times-international-weekly/hacer-multiples-tareas-a-la-vez-tiene-un-impacto-negativo-en-nuestro-cerebro-expertos-responden-3329867"]]],
+    ["Práctica corta y frecuente",
+      "El estudio espaciado supera a los maratones; uno de los hallazgos más replicados de la psicología (317 experimentos, evidencia desde 1885).",
+      [["Estudio: Cepeda et al. (2006)", "https://pubmed.ncbi.nlm.nih.gov/16719566/"],
+       ["Explicación (EN) · The Decision Lab", "https://thedecisionlab.com/biases/spacing-effect"],
+       ["Explicación (ES) · The Decision Lab", "https://thedecisionlab.com/es/biases/spacing-effect"]]],
+    ["Dormir importa",
+      "La calidad y duración del sueño predicen el autocontrol (meta-análisis de 61 estudios).",
+      [["Estudio: Guarana et al. (2021)", "https://www.sciencedirect.com/science/article/abs/pii/S108707922100099X"],
+       ["Explicación (EN) · TIME", "https://time.com/4236126/sleep-willpower/"],
+       ["Explicación (ES) · Nueva Tribuna", "https://www.nuevatribuna.es/articulo/sociedad/psicoecologia-falta-sueno-afecta-toma-decisiones-psicologia/20240108134042221670.html"]]],
+    ["Consistencia sin perfeccionismo",
+      "Un hábito tarda 18–254 días en automatizarse (mediana 66) y fallar un día no rompe el proceso.",
+      [["Estudio: Lally et al. (2010)", "https://onlinelibrary.wiley.com/doi/10.1002/ejsp.674"],
+       ["Explicación (EN) · BPS Research Digest", "https://www.bps.org.uk/research-digest/how-form-habit"],
+       ["Explicación (ES) · Psicología Cada Día", "https://psicologiacadadia.com/en-cuanto-tiempo-se-crea-un-habito/"]]],
+    ["Diseñar el sistema, no forzar la voluntad",
+      "Las personas con mejor autocontrol no resisten más tentaciones: dependen de hábitos y diseñan su entorno (6 estudios, N=2,274).",
+      [["Estudio: Galla & Duckworth (2015)", "https://pmc.ncbi.nlm.nih.gov/articles/PMC4731333/"],
+       ["Complemento: Duckworth, Gendler & Gross (2016)", "https://journals.sagepub.com/doi/10.1177/1745691615623247"],
+       ["Explicación (EN) · ScienceDaily", "https://www.sciencedaily.com/releases/2019/02/190214153023.htm"],
+       ["Explicación (ES) · Knowable Magazine", "https://es.knowablemagazine.org/content/articulo/mente/2024/la-psicologia-del-autocontrol"]]],
+    ["Tu documento de sentido (ancla)",
+      "Escribir y releer tus valores amortigua la amenaza y el bajón, y mejora el desempeño (efecto pequeño pero replicado, d≈0.41).",
+      [["Revisión: Cohen & Sherman (2014) + meta-análisis educativo", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10779329/"],
+       ["Explicación (EN) · Greater Good, UC Berkeley", "https://ggia.berkeley.edu/practice/affirming_important_values"],
+       ["Explicación (ES) · Greater Good, UC Berkeley", "https://ggia.berkeley.edu/es/practice/affirming_important_values"]]],
+    ["Revisión semanal con registro de progreso",
+      "Reflexionar por escrito sobre lo hecho mejora el desempeño futuro (+23% en experimento de campo), y percibir progreso es el mayor motor de la motivación.",
+      [["Estudio: Di Stefano, Gino, Pisano & Staats", "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2414478"],
+       ["Explicación (EN) · HBS Working Knowledge", "https://www.library.hbs.edu/working-knowledge/reflecting-on-work-improves-job-performance"],
+       ["Progress principle (EN) · HBR", "https://hbr.org/2011/05/the-power-of-small-wins"],
+       ["Explicación (ES) · El principio del progreso, T. Amabile", "https://www.eexcellence.es/expertos/el-principio-del-progreso-utilizar-los-pequenos-logros-para-impulsar-el-cambio-por-teresa-amabile"]]]
+  ];
+  let lista = "";
+  $.each(estudios, function(i, e){
+    let links = "";
+    $.each(e[2], function(_, l){
+      links += `<li><a href="${esc(l[1])}" target="_blank" rel="noopener noreferrer" class="text-blanco underline decoration-linea hover:decoration-blanco break-words">${esc(l[0])} ↗</a></li>`;
+    });
+    lista += `
+    <div class="card">
+      <p class="font-mono text-[11px] text-gris">${String(i+1).padStart(2,"0")}</p>
+      <p class="font-semibold mt-1">${esc(e[0])}</p>
+      <p class="text-gris text-sm mt-1 leading-relaxed">${esc(e[1])}</p>
+      <ul class="mt-2 space-y-1 text-sm">${links}</ul>
+    </div>`;
+  });
+  return `
+  <div class="card !bg-negro border-blanco">
+    <p class="label !text-blanco">PROPÓSITO</p>
+    <p class="leading-relaxed">thefocusleo no es una app de productividad. No busca que hagas más: busca que estés enfocado, que lo que hagas tenga sentido para ti y que dediques tu energía a lo de mayor impacto. Menos, pero mejor. Cada funcionalidad existe solo si la ciencia la respalda.</p>
+  </div>
+  <p class="label !text-blanco mt-1">BASE CIENTÍFICA</p>
+  ${lista}
+  <div class="card !bg-negro">
+    <p class="text-gris text-sm leading-relaxed">Las duraciones concretas (90 min, horarios) son convenciones prácticas editables, no prescripciones científicas.</p>
+  </div>`;
+}
+
+function viewMenuDatos(){
   return `
   <div class="card">
     <p class="label">PERSONALIZAR CON IA</p>
@@ -256,10 +389,16 @@ function viewDatos(){
 
 /* ---------- Export / Import ---------- */
 
-// Migraciones: MIGRATIONS[v] transforma el objeto `data` de la versión v a la v+1.
-// Hoy solo existe la v1, así que no hay migraciones. Cuando cambie el esquema:
-// incrementar SCHEMA_VERSION y añadir MIGRATIONS[1] = (store) => { ...; return store; }.
-const MIGRATIONS = {};
+// Migraciones: MIGRATIONS[v] transforma el `store` (mapa de claves de localStorage → valor
+// parseado) de la versión v a la v+1. Debe devolver el store.
+// v1→v2: se añadió `config.durBloque` (preferencia de duración) y el campo `progreso` a cada
+// revisión. `normalizar` rellena ambos sin pisar datos existentes.
+const MIGRATIONS = {
+  1: function(store){
+    if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
+    return store;
+  }
+};
 
 function migrar(store, desde){
   let v = desde;
@@ -435,6 +574,10 @@ function fusionarPorId(actual, entrante){
 // Fusiona el bloque principal (KEY): arrays por id, la visión de la copia gana si no está vacía.
 function fusionarPrincipal(actual, entrante){
   const out = structuredClone(actual && typeof actual === "object" ? actual : {});
+  // config: la copia gana si trae una duración válida (preferencia, no dato acumulable).
+  if(entrante && entrante.config && typeof entrante.config === "object"){
+    out.config = Object.assign(out.config && typeof out.config === "object" ? out.config : {}, entrante.config);
+  }
   out.sentido = out.sentido && typeof out.sentido === "object" ? out.sentido : {};
   const eSent = (entrante && entrante.sentido) || {};
   if(typeof eSent.vision === "string" && eSent.vision.trim()) out.sentido.vision = eSent.vision;
@@ -477,10 +620,11 @@ function aplicarImport(mode){
     }
   } catch(e){ $s.text("✕ No se pudieron guardar los datos (¿almacenamiento lleno?)."); return; }
 
-  try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+  try { data = normalizar(JSON.parse(localStorage.getItem(KEY))); }
   catch(e){ data = structuredClone(DEFAULT_DATA); }
   pendingImport = null;
-  render(); // re-dibuja la pestaña DATOS (limpia la previsualización)
+  renderMenu(); // re-dibuja el menú DATOS (limpia la previsualización)
+  render();     // refresca las pestañas principales por si cambiaron los datos
   $("#datos-status").text(mode === "replace" ? "✓ Datos reemplazados correctamente." : "✓ Datos fusionados correctamente.");
 }
 
@@ -492,8 +636,19 @@ function renderTabs(){
   });
 }
 function render(){
-  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision, datos: viewDatos };
+  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
   $("#main").html(views[tab]());
+}
+
+function renderMenuTabs(){
+  const $t = $("#menu-tabs").empty();
+  $.each(MENU_TABS, function(_, t){
+    $t.append(`<button class="tab-btn ${menuTab===t[0] ? "active" : ""}" data-menutab="${t[0]}">${t[1]}</button>`);
+  });
+}
+function renderMenu(){
+  const views = { config: viewMenuConfig, datos: viewMenuDatos, acerca: viewMenuAcerca };
+  $("#menu-body").html(views[menuTab]());
 }
 
 /* ---------- Eventos (delegación jQuery) ---------- */
@@ -533,7 +688,7 @@ $(function(){
     save(); render();
   });
   $m.on("click", ".add-bloque", function(){
-    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", area:"Proyecto", dur:"60 min"});
+    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", area:"Proyecto", dur:data.config.durBloque || DUR_DEFECTO});
     save(); render();
   });
 
@@ -551,22 +706,43 @@ $(function(){
 
   // Revisión
   $m.on("click", "#add-revision", function(){
+    const progreso = $("#rev-progreso").val().trim();
     const avance = $("#rev-avance").val().trim();
     const siguiente = $("#rev-siguiente").val().trim();
     const releido = $("#rev-releido").is(":checked");
-    if(!avance && !siguiente) return;
-    data.revisiones.unshift({id:uid(), fecha:hoyISO(), avance, siguiente, releido});
+    if(!progreso && !avance && !siguiente) return;
+    data.revisiones.unshift({id:uid(), fecha:hoyISO(), progreso, avance, siguiente, releido});
     save(); render();
   });
 
+  // Menú (config / datos / acerca)
+  const $menu = $("#menu-body");
+  renderMenuTabs();
+  renderMenu();
+
+  $("#abrir-menu").on("click", function(){ $("#menu").removeClass("hidden"); });
+  $("#cerrar-menu, #menu-backdrop").on("click", function(){ $("#menu").addClass("hidden"); });
+  $("#menu-tabs").on("click", ".tab-btn", function(){
+    menuTab = $(this).data("menutab");
+    renderMenuTabs(); renderMenu();
+  });
+
+  // Configuración
+  $menu.on("input", "#cfg-dur", function(){
+    const v = this.value.trim();
+    data.config.durBloque = v || DUR_DEFECTO;
+    save();
+    $("#cfg-status").text("✓ Guardado");
+  });
+
   // Datos (export / import)
-  $m.on("click", "#prompt-ia", copiarPromptIA);
-  $m.on("click", "#export-datos", exportData);
-  $m.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
-  $m.on("change", "#import-file", importData);
-  $m.on("click", "#import-replace", function(){ aplicarImport("replace"); });
-  $m.on("click", "#import-merge", function(){ aplicarImport("merge"); });
-  $m.on("click", "#import-cancel", function(){
+  $menu.on("click", "#prompt-ia", copiarPromptIA);
+  $menu.on("click", "#export-datos", exportData);
+  $menu.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
+  $menu.on("change", "#import-file", importData);
+  $menu.on("click", "#import-replace", function(){ aplicarImport("replace"); });
+  $menu.on("click", "#import-merge", function(){ aplicarImport("merge"); });
+  $menu.on("click", "#import-cancel", function(){
     pendingImport = null;
     $("#import-preview").addClass("hidden").empty();
     $("#datos-status").text("Importación cancelada.");
@@ -583,6 +759,21 @@ $(function(){
           <p class="mt-1.5 leading-relaxed whitespace-pre-wrap">${esc(a.proposito)}</p>
         </div>`);
     });
+    const hoy = new Date().getDay();
+    const bloquesHoy = data.bloques.filter(b => b.dia === hoy).sort((a,b) => a.hora.localeCompare(b.hora));
+    const $h = $("#ancla-hoy").empty();
+    if(bloquesHoy.length){
+      let items = "";
+      $.each(bloquesHoy, function(_, b){
+        items += `<li class="font-mono text-sm"><span class="text-blanco">${esc(b.hora)}</span> <span class="text-gris">→ ${esc(b.area)}${b.dur ? " · " + esc(b.dur) : ""}</span></li>`;
+      });
+      $h.html(`
+        <p class="font-mono text-xs tracking-widest text-blanco border-t border-linea pt-4">LA DECISIÓN YA ESTÁ TOMADA — HOY, ${DIAS[hoy].toUpperCase()}</p>
+        <ul class="mt-3 space-y-1">${items}</ul>
+        <p class="text-gris text-sm mt-3">No la negocies ahora: vuelve al bloque que decidiste.</p>`);
+    } else {
+      $h.html(`<p class="text-gris text-sm border-t border-linea pt-4">Hoy no tienes bloques. La decisión sobre qué hacer ya vive en tu Semana: no la reinventes ahora.</p>`);
+    }
     $("#ancla").removeClass("hidden");
   });
   $("#cerrar-ancla").on("click", function(){ $("#ancla").addClass("hidden"); });
