@@ -98,7 +98,10 @@ tailwind.config = {
 const KEY = "sistema-personal-v1";
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
-const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"],["datos","DATOS"]];
+const SCHEMA_VERSION = 1;
+const APP_ID = "sistema-personal";
+const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
 
 const DEFAULT_DATA = {
   sentido:{
@@ -227,6 +230,260 @@ function viewRevision(){
   return h;
 }
 
+function viewDatos(){
+  return `
+  <div class="card">
+    <p class="label">PERSONALIZAR CON IA</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Copia un prompt con tu sistema actual y un enlace al contexto de la app (llms.txt). Pégalo en cualquier IA con acceso a internet, conversa las mejoras que quieras a tu sistema y te devolverá un JSON listo para importar aquí abajo.</p>
+    <button class="btn btn-primary" id="prompt-ia">Copiar prompt para IA</button>
+    <p id="ia-status" class="text-sm mt-2 font-mono"></p>
+    <textarea id="ia-fallback" class="input mt-2 hidden" rows="6" readonly></textarea>
+  </div>
+  <div class="card">
+    <p class="label">EXPORTAR</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Descarga una copia de seguridad con todos tus datos (sentido, semana, ideas y revisiones) en un archivo JSON. Guárdalo en un lugar seguro.</p>
+    <button class="btn btn-primary" id="export-datos">Exportar copia</button>
+  </div>
+  <div class="card">
+    <p class="label">IMPORTAR</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Restaura desde un archivo de copia previamente exportado. Podrás elegir entre reemplazar todo o fusionar con lo que ya tienes.</p>
+    <input type="file" accept="application/json,.json" id="import-file" class="hidden">
+    <button class="btn" id="import-datos">Elegir archivo…</button>
+    <div id="import-preview" class="hidden mt-3 border-t border-linea pt-3"></div>
+    <p id="datos-status" class="text-sm mt-3 font-mono whitespace-pre-wrap"></p>
+  </div>`;
+}
+
+/* ---------- Export / Import ---------- */
+
+// Migraciones: MIGRATIONS[v] transforma el objeto `data` de la versión v a la v+1.
+// Hoy solo existe la v1, así que no hay migraciones. Cuando cambie el esquema:
+// incrementar SCHEMA_VERSION y añadir MIGRATIONS[1] = (store) => { ...; return store; }.
+const MIGRATIONS = {};
+
+function migrar(store, desde){
+  let v = desde;
+  while(v < SCHEMA_VERSION){
+    const fn = MIGRATIONS[v];
+    if(typeof fn !== "function") throw new Error("Falta la migración de la versión " + v);
+    store = fn(store);
+    v++;
+  }
+  return store;
+}
+
+let pendingImport = null; // { store, schemaVersion } a la espera de confirmar reemplazar/fusionar
+
+// Recopila todas las claves de localStorage de la app, con sus valores parseados como JSON.
+function recopilarStore(){
+  const store = {};
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf(PREFIX) === 0){
+      const raw = localStorage.getItem(k);
+      try { store[k] = JSON.parse(raw); } catch(e){ store[k] = raw; }
+    }
+  }
+  return store;
+}
+
+// Construye el objeto de backup (misma forma que el archivo de export).
+function construirBackup(){
+  return {
+    app: APP_ID,
+    schemaVersion: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: recopilarStore()
+  };
+}
+
+// Copia texto al portapapeles con respaldo para contextos sin Clipboard API (p. ej. file://).
+function copiarAlPortapapeles(texto){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(texto);
+  }
+  return new Promise(function(resolve, reject){
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      ok ? resolve() : reject(new Error("execCommand"));
+    } catch(e){ reject(e); }
+  });
+}
+
+// Prompt para pegar en cualquier IA: enlace al llms.txt (contexto) + el sistema actual en JSON.
+function construirPromptIA(){
+  const llmsURL = new URL("./llms.txt", location.href).href;
+  const backup = construirBackup();
+  return 'Quiero personalizar mi app "Sistema Personal" (un sistema personal para ejecutar sin motivación).\n\n' +
+    'Primero lee este archivo para entender qué es la app y el formato EXACTO de sus datos:\n' +
+    llmsURL + '\n\n' +
+    'Abajo está mi sistema actual, exportado en JSON. Ayúdame a mejorarlo: conversemos sobre mi visión, ' +
+    'mis áreas, mis bloques semanales, mis ideas y mis revisiones (puedo cambiar mi esquema por completo). ' +
+    'Cuando estemos de acuerdo, devuélveme UN ÚNICO bloque JSON válido para importar, con el mismo formato ' +
+    '(campos app, schemaVersion, exportedAt y data) y el schemaVersion actual, listo para guardar como archivo ' +
+    '.json e importar en la app.\n\n' +
+    'Mi sistema actual:\n```json\n' + JSON.stringify(backup, null, 2) + '\n```';
+}
+
+function copiarPromptIA(){
+  const prompt = construirPromptIA();
+  copiarAlPortapapeles(prompt).then(function(){
+    $("#ia-status").text("✓ Prompt copiado. Pégalo en tu IA favorita.");
+    $("#ia-fallback").addClass("hidden");
+  }).catch(function(){
+    $("#ia-status").text("No se pudo copiar automáticamente. Copia el texto de abajo:");
+    $("#ia-fallback").val(prompt).removeClass("hidden");
+  });
+}
+
+function exportData(){
+  const backup = construirBackup();
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sistema-personal-backup-${hoyISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#datos-status").text("✓ Copia exportada.");
+}
+
+// Cuenta elementos por sección del bloque principal (clave KEY) del store importado.
+function resumenStore(store){
+  const d = (store && store[KEY]) || {};
+  const s = d.sentido || {};
+  const otras = Object.keys(store || {}).filter(k => k !== KEY);
+  return {
+    vision: s.vision && String(s.vision).trim() ? 1 : 0,
+    areas: Array.isArray(s.areas) ? s.areas.length : 0,
+    bloques: Array.isArray(d.bloques) ? d.bloques.length : 0,
+    ideas: Array.isArray(d.ideas) ? d.ideas.length : 0,
+    revisiones: Array.isArray(d.revisiones) ? d.revisiones.length : 0,
+    otras: otras
+  };
+}
+
+function importData(ev){
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = ""; // permite reimportar el mismo archivo
+  if(!file) return;
+  const $s = $("#datos-status");
+  const $prev = $("#import-preview").addClass("hidden").empty();
+  pendingImport = null;
+  const reader = new FileReader();
+  reader.onload = function(){
+    let backup;
+    try { backup = JSON.parse(reader.result); }
+    catch(e){ $s.text("✕ Archivo inválido: no es un JSON legible."); return; }
+    if(!backup || typeof backup !== "object" || backup.app !== APP_ID){
+      $s.text("✕ Este archivo no es una copia de Sistema Personal."); return;
+    }
+    const sv = backup.schemaVersion;
+    if(typeof sv !== "number" || !Number.isInteger(sv) || sv < 1){
+      $s.text("✕ La copia no declara un schemaVersion válido."); return;
+    }
+    if(sv > SCHEMA_VERSION){
+      $s.text("✕ La copia usa una versión más nueva del formato (v" + sv + "). Actualiza la app."); return;
+    }
+    if(!backup.data || typeof backup.data !== "object"){
+      $s.text("✕ La copia no contiene datos."); return;
+    }
+    let store;
+    try { store = migrar(structuredClone(backup.data), sv); }
+    catch(e){ $s.text("✕ No se pudo migrar la copia: " + e.message); return; }
+
+    pendingImport = { store: store, schemaVersion: sv };
+    const r = resumenStore(store);
+    const extra = r.otras.length ? `\n· otras claves: ${r.otras.join(", ")}` : "";
+    $prev.html(`
+      <p class="text-sm mb-1">La copia contiene:</p>
+      <p class="font-mono text-xs text-gris whitespace-pre-wrap">· visión: ${r.vision ? "sí" : "no"}
+· áreas: ${r.areas}
+· bloques: ${r.bloques}
+· ideas: ${r.ideas}
+· revisiones: ${r.revisiones}${extra}</p>
+      <p class="text-sm mt-3 mb-2">¿Cómo quieres aplicarla?</p>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-primary" id="import-replace">Reemplazar todo</button>
+        <button class="btn" id="import-merge">Fusionar</button>
+        <button class="btn" id="import-cancel">Cancelar</button>
+      </div>
+      <p class="text-tenue text-[11px] font-mono mt-2 leading-relaxed">Reemplazar borra tus datos actuales. Fusionar añade lo que falte; ante conflicto gana la copia.</p>`).removeClass("hidden");
+    $s.text("");
+  };
+  reader.onerror = function(){ $s.text("✕ No se pudo leer el archivo."); };
+  reader.readAsText(file);
+}
+
+// Fusiona dos arrays de objetos con `id`: parte del actual y la copia sobrescribe por id.
+function fusionarPorId(actual, entrante){
+  const map = new Map();
+  (Array.isArray(actual) ? actual : []).forEach(x => { if(x && x.id != null) map.set(x.id, x); });
+  (Array.isArray(entrante) ? entrante : []).forEach(x => { if(x && x.id != null) map.set(x.id, x); });
+  return Array.from(map.values());
+}
+
+// Fusiona el bloque principal (KEY): arrays por id, la visión de la copia gana si no está vacía.
+function fusionarPrincipal(actual, entrante){
+  const out = structuredClone(actual && typeof actual === "object" ? actual : {});
+  out.sentido = out.sentido && typeof out.sentido === "object" ? out.sentido : {};
+  const eSent = (entrante && entrante.sentido) || {};
+  if(typeof eSent.vision === "string" && eSent.vision.trim()) out.sentido.vision = eSent.vision;
+  out.sentido.areas = fusionarPorId(out.sentido.areas, eSent.areas);
+  out.bloques = fusionarPorId(out.bloques, entrante && entrante.bloques);
+  out.ideas = fusionarPorId(out.ideas, entrante && entrante.ideas);
+  out.revisiones = fusionarPorId(out.revisiones, entrante && entrante.revisiones);
+  return out;
+}
+
+function aplicarImport(mode){
+  if(!pendingImport){ return; }
+  const store = pendingImport.store;
+  const $s = $("#datos-status");
+  try {
+    if(mode === "replace"){
+      const aBorrar = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf(PREFIX) === 0) aBorrar.push(k);
+      }
+      aBorrar.forEach(k => localStorage.removeItem(k));
+      Object.keys(store).forEach(function(k){
+        if(k.indexOf(PREFIX) !== 0) return;
+        const v = store[k];
+        localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+      });
+    } else { // merge
+      Object.keys(store).forEach(function(k){
+        if(k.indexOf(PREFIX) !== 0) return;
+        if(k === KEY){
+          let cur;
+          try { cur = JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ cur = {}; }
+          localStorage.setItem(KEY, JSON.stringify(fusionarPrincipal(cur, store[k])));
+        } else {
+          const v = store[k]; // la copia gana ante conflicto
+          localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+        }
+      });
+    }
+  } catch(e){ $s.text("✕ No se pudieron guardar los datos (¿almacenamiento lleno?)."); return; }
+
+  try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+  catch(e){ data = structuredClone(DEFAULT_DATA); }
+  pendingImport = null;
+  render(); // re-dibuja la pestaña DATOS (limpia la previsualización)
+  $("#datos-status").text(mode === "replace" ? "✓ Datos reemplazados correctamente." : "✓ Datos fusionados correctamente.");
+}
+
 /* ---------- Render ---------- */
 function renderTabs(){
   const $t = $("#tabs").empty();
@@ -235,7 +492,7 @@ function renderTabs(){
   });
 }
 function render(){
-  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
+  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision, datos: viewDatos };
   $("#main").html(views[tab]());
 }
 
@@ -300,6 +557,19 @@ $(function(){
     if(!avance && !siguiente) return;
     data.revisiones.unshift({id:uid(), fecha:hoyISO(), avance, siguiente, releido});
     save(); render();
+  });
+
+  // Datos (export / import)
+  $m.on("click", "#prompt-ia", copiarPromptIA);
+  $m.on("click", "#export-datos", exportData);
+  $m.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
+  $m.on("change", "#import-file", importData);
+  $m.on("click", "#import-replace", function(){ aplicarImport("replace"); });
+  $m.on("click", "#import-merge", function(){ aplicarImport("merge"); });
+  $m.on("click", "#import-cancel", function(){
+    pendingImport = null;
+    $("#import-preview").addClass("hidden").empty();
+    $("#datos-status").text("Importación cancelada.");
   });
 
   // Ancla
