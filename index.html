@@ -51,6 +51,21 @@ tailwind.config = {
 </head>
 <body class="bg-negro text-blanco font-sans pb-20 antialiased">
 
+<!-- Banner instalar PWA -->
+<div id="install-banner" class="hidden fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+  <div class="max-w-2xl mx-auto card !bg-negro border-blanco flex items-center gap-3">
+    <img src="./icon-192.png" alt="" class="w-11 h-11 rounded-lg border border-linea shrink-0">
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold leading-tight">Instalar en tu dispositivo</p>
+      <p id="install-texto" class="text-gris text-xs mt-0.5 leading-snug">Añádela como app para abrirla sin el navegador.</p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="install-si" class="btn btn-primary">Instalar</button>
+      <button id="install-no" class="btn !px-2.5" aria-label="Cerrar">✕</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay ancla -->
 <div id="ancla" class="hidden fixed inset-0 bg-negro/95 z-50 overflow-y-auto px-5 py-12 backdrop-blur-sm" role="dialog" aria-label="Recordatorio de propósito">
   <div class="max-w-2xl mx-auto">
@@ -68,7 +83,10 @@ tailwind.config = {
       <h1 class="text-xl font-bold tracking-tight">Sistema personal</h1>
       <p class="font-mono text-[11px] text-gris tracking-widest">EJECUTAR SIN MOTIVACIÓN</p>
     </div>
-    <button id="abrir-ancla" class="btn !border-blanco">¿Desenfocado? →</button>
+    <div class="flex items-center gap-2 flex-wrap">
+      <button id="install-header" class="hidden btn btn-primary">↓ Instalar app</button>
+      <button id="abrir-ancla" class="btn !border-blanco">¿Desenfocado? →</button>
+    </div>
   </header>
 
   <nav id="tabs" class="flex gap-5 mt-5 border-b border-linea overflow-x-auto"></nav>
@@ -569,6 +587,76 @@ $(function(){
   });
   $("#cerrar-ancla").on("click", function(){ $("#ancla").addClass("hidden"); });
 });
+
+/* ---------- Instalar PWA ---------- */
+(function(){
+  const DISMISS_KEY = "sistema-personal-install-dismissed";
+  const $banner = $("#install-banner");
+  const $header = $("#install-header");
+  let deferredPrompt = null;
+
+  const esStandalone = () =>
+    window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const esIOS = () =>
+    /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  // ¿Se puede ofrecer instalar? (prompt nativo disponible o iOS manual, y no instalada)
+  const instalable = () => !esStandalone() && (!!deferredPrompt || esIOS());
+
+  function descartado(){ try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch(e){ return false; } }
+  function descartar(){ try { localStorage.setItem(DISMISS_KEY, "1"); } catch(e){} $banner.addClass("hidden"); }
+
+  // Botón del header: siempre disponible mientras se pueda instalar (aunque se descarte el banner)
+  function sincHeader(){ $header.toggleClass("hidden", !instalable()); }
+
+  function mostrarBanner(){
+    if(esStandalone() || descartado()) return;
+    $banner.removeClass("hidden");
+  }
+
+  // Dispara el prompt nativo o, en iOS, muestra el banner con instrucciones manuales.
+  async function instalar(){
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch(e){}
+      deferredPrompt = null;
+      $banner.addClass("hidden");
+      sincHeader();
+    } else if(esIOS()){
+      // Acción explícita del usuario: reabrir el banner con instrucciones aunque estuviera descartado
+      $("#install-si").addClass("hidden");
+      $("#install-texto").html('Pulsá <span class="text-blanco">Compartir</span> y luego <span class="text-blanco">«Añadir a pantalla de inicio»</span>.');
+      $banner.removeClass("hidden");
+    }
+  }
+
+  // Android / Chrome / Edge: prompt nativo diferido
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+    sincHeader();
+    mostrarBanner();
+  });
+
+  $("#install-si").on("click", instalar);
+  $("#install-header").on("click", instalar);
+  $("#install-no").on("click", descartar);
+
+  window.addEventListener("appinstalled", function(){
+    deferredPrompt = null;
+    $banner.addClass("hidden");
+    sincHeader();
+    try { localStorage.removeItem(DISMISS_KEY); } catch(e){}
+  });
+
+  // iOS Safari: no dispara beforeinstallprompt → habilitar botón y mostrar banner con instrucciones
+  $(function(){
+    sincHeader();
+    if(esIOS() && !esStandalone()){
+      $("#install-texto").text("Añádela como app desde el menú Compartir del navegador.");
+      mostrarBanner();
+    }
+  });
+})();
 
 /* Service worker */
 if("serviceWorker" in navigator){
