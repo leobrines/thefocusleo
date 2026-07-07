@@ -1,0 +1,159 @@
+# Sistema Personal
+
+> App web personal para "ejecutar sin motivación": un lugar único donde defines el sentido de lo que haces, organizas tu semana en bloques, capturas ideas y revisas tu avance. La idea de fondo es que no dependas de sentirte motivado: si sabes por qué haces las cosas y cuándo tocan, solo tienes que empezar. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
+
+## Para qué la uso
+
+La app tiene cuatro espacios de trabajo más una sección de datos:
+
+- **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque.
+- **Semana**: organizo la semana en bloques por día (hora, en qué área trabajo y cuánto dura). La regla es: dentro de un bloque, lo demás no existe. El día actual se resalta.
+- **Ideas**: captura rápida de ideas para proyectos nuevos o actuales, cada una con su fecha. Pensado para el bloque de ideación del domingo.
+- **Revisión**: revisión semanal de 30 min donde anoto qué avancé, qué sigue la próxima semana, y marco si releí mi documento de sentido. Queda un historial.
+- **Datos**: exportar e importar toda mi información como archivo JSON (backup, migrar de dispositivo, etc.).
+
+También hay un overlay "¿Desenfocado?" que muestra la visión y los propósitos de cada área a pantalla completa como recordatorio.
+
+## Personalizar mi sistema con una IA (uso principal)
+
+La app está pensada para trabajarse con una IA. El flujo previsto es:
+
+1. En la pestaña **Datos**, pulso **"Copiar prompt para IA"**. Eso copia al portapapeles un prompt que incluye (a) el enlace a este mismo `llms.txt` y (b) mi sistema actual exportado como JSON.
+2. Pego ese prompt en cualquier IA con acceso a internet (para que pueda leer este archivo y conocer el formato exacto).
+3. Converso las mejoras que quiera: reescribir mi visión, reorganizar mis áreas, rediseñar mis bloques semanales, depurar ideas, replantear mis revisiones. Mi esquema es mío: puedo rehacer por completo mi sistema.
+4. Le pido a la IA que me entregue **un único JSON válido para importar** (el formato de export descrito en `## Datos`). Lo guardo como archivo `.json`.
+5. Vuelvo a **Datos → Importar**, elijo el archivo y aplico **Reemplazar** o **Fusionar**.
+
+**Si eres la IA que recibió ese prompt**: lee la sección `## Datos` para el formato exacto, ayuda a la persona a rediseñar su sistema y, al final, devuelve un solo bloque JSON con `app`, `schemaVersion` (el actual), `exportedAt` y `data`, listo para importar. No inventes claves nuevas dentro de `data` salvo que la persona lo pida explícitamente, y respeta el esquema de cada sección.
+
+## Qué le puedo pedir a un LLM
+
+- Modificar o arreglar funcionalidades existentes (pestañas, campos, comportamiento).
+- Agregar nuevas secciones o pestañas manteniendo el estilo actual.
+- Interpretar o transformar un archivo de export (resumir mis ideas, analizar mis revisiones, reformatear mis bloques semanales, etc.).
+- Generar datos válidos para importar (por ejemplo, proponer una semana de bloques o un conjunto de áreas y entregarlos en el formato exacto de import).
+
+## Reglas al modificar la app
+
+- **Compatibilidad de datos**: no cambies la forma del JSON guardado sin incrementar `schemaVersion` en `index.html` y añadir su migración correspondiente en el objeto `MIGRATIONS` (mapea versión vieja → siguiente). Los usuarios tienen datos reales en sus dispositivos y no deben perderse.
+- **No renombres claves de localStorage existentes** (`sistema-personal-v1`). Cambiar el nombre deja huérfanos los datos ya guardados.
+- **Un solo archivo, sin build**: toda la app vive en `index.html` (HTML + Tailwind por CDN + jQuery + un `<script>` inline). No introduzcas paso de compilación, bundlers ni dependencias nuevas. `index.html` es la fuente de verdad del código.
+- **Service worker**: cada vez que cambies `index.html` u otros assets, incrementa la versión del cache (`CACHE`) en `sw.js` para que los usuarios reciban la actualización.
+- **Diseño**: mantén el tema monocromo (negro/blanco, tipografía mono para etiquetas). Cualquier UI nueva debe ser coherente con el estilo existente.
+- **Offline y privado**: todo debe seguir funcionando sin conexión y sin enviar datos a ningún servidor.
+
+## Datos
+
+Los datos viven **solo en el `localStorage` del navegador del usuario**, en su dispositivo. No hay backend, ni sincronización, ni copia en la nube: la única forma de mover o respaldar datos es el export/import de la pestaña Datos.
+
+### Claves de localStorage
+
+Actualmente la app usa **una sola clave**:
+
+#### `sistema-personal-v1`
+
+Guarda todo el estado de la app como un único objeto JSON (string). Esquema:
+
+```json
+{
+  "sentido": {
+    "vision": "string — texto libre con la visión general",
+    "areas": [
+      { "id": "string único", "nombre": "string", "proposito": "string" }
+    ]
+  },
+  "bloques": [
+    {
+      "id": "string único",
+      "dia": 0,
+      "hora": "HH:MM (24h)",
+      "area": "string",
+      "dur": "string libre, ej. '60 min'"
+    }
+  ],
+  "ideas": [
+    { "id": "string único", "texto": "string", "fecha": "YYYY-MM-DD" }
+  ],
+  "revisiones": [
+    {
+      "id": "string único",
+      "fecha": "YYYY-MM-DD",
+      "avance": "string",
+      "siguiente": "string",
+      "releido": true
+    }
+  ]
+}
+```
+
+Notas de campos:
+
+- `dia`: número **0–6 según `Date.getDay()`**, es decir `0 = domingo`, `1 = lunes`, … `6 = sábado`. En la vista la semana se muestra empezando en lunes.
+- `id`: cadena corta única dentro de su array (la app las genera con base36 aleatorio). Sirve como identidad para editar, borrar y para la fusión al importar.
+- `hora`: formato de 24 horas `HH:MM`.
+- `releido`: booleano; indica si en esa revisión se releyó el documento de sentido.
+- Las `ideas` y `revisiones` se muestran de más reciente a más antigua.
+
+Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
+
+```json
+{
+  "sentido": {
+    "vision": "Quiero construir habilidades escasas y valiosas que me den libertad para elegir en qué trabajo.",
+    "areas": [
+      { "id": "a1", "nombre": "Proyectos", "proposito": "Construyo cosas reales porque solo lo enviado cuenta." },
+      { "id": "a2", "nombre": "Estudio", "proposito": "Estudio para pensar mejor, no solo para trabajar más." }
+    ]
+  },
+  "bloques": [
+    { "id": "b1", "dia": 1, "hora": "07:00", "area": "Estudio", "dur": "60 min" },
+    { "id": "b2", "dia": 1, "hora": "19:00", "area": "Proyectos", "dur": "90 min" },
+    { "id": "b3", "dia": 0, "hora": "10:00", "area": "Ideación", "dur": "45 min" }
+  ],
+  "ideas": [
+    { "id": "i1", "texto": "Prototipo de app para registrar hábitos por bloques.", "fecha": "2025-02-16" }
+  ],
+  "revisiones": [
+    { "id": "r1", "fecha": "2025-02-16", "avance": "Cerré el módulo de export.", "siguiente": "Escribir tests del import.", "releido": true }
+  ]
+}
+```
+
+### Formato del archivo de export/import
+
+El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con esta forma exacta:
+
+```json
+{
+  "app": "sistema-personal",
+  "schemaVersion": 1,
+  "exportedAt": "2025-02-16T14:30:00.000Z",
+  "data": {
+    "sistema-personal-v1": { "...": "el objeto descrito arriba, ya parseado como JSON, no como string" }
+  }
+}
+```
+
+Campo por campo:
+
+- `app`: constante `"sistema-personal"`. El import **rechaza** cualquier archivo cuyo `app` no sea exactamente este.
+- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `1`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
+- `exportedAt`: fecha/hora ISO 8601 del momento del export.
+- `data`: objeto cuyas claves son **claves de localStorage** (por ahora solo `sistema-personal-v1`) y cuyos valores son el contenido **ya parseado como objeto JSON** (no strings escapados).
+
+Comportamiento del **Import**:
+
+1. Valida `app` y que `schemaVersion` sea un entero soportado (≤ actual). Si no, muestra un error y no toca nada.
+2. Aplica migraciones si la versión es anterior a la actual.
+3. Muestra un resumen (cuántas áreas, bloques, ideas, revisiones) y ofrece dos modos:
+   - **Reemplazar todo**: borra las claves actuales de la app y escribe las del archivo.
+   - **Fusionar**: conserva lo existente y agrega lo que falte. Los arrays se combinan por `id`; ante conflicto (mismo `id`) **gana el archivo importado**. La `vision` del archivo gana si no está vacía.
+
+### Instrucciones directas para el LLM
+
+- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**1**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas. Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
+- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha) y `revisiones` (bitácora semanal). Interpreta cada sección según su propósito descrito arriba.
+
+### Historial de schemaVersion
+
+- **v1** (actual): esquema descrito en este documento. No hay migraciones previas.
