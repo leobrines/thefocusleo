@@ -85,6 +85,9 @@ tailwind.config = {
       <p class="font-mono text-xs tracking-[0.15em] text-gris">MENÚ</p>
       <button id="cerrar-menu" class="btn !px-2.5" aria-label="Cerrar menú">✕</button>
     </div>
+    <div id="install-menu-wrap" class="hidden px-4 pt-4">
+      <button id="install-menu" class="btn btn-primary w-full">↓ Instalar app</button>
+    </div>
     <nav id="menu-tabs" class="flex gap-5 px-4 border-b border-linea overflow-x-auto"></nav>
     <div id="menu-body" class="p-4 grid gap-3"></div>
   </div>
@@ -97,8 +100,6 @@ tailwind.config = {
       <p class="font-mono text-[11px] text-gris tracking-widest">EJECUTAR SIN MOTIVACIÓN</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-      <button id="install-header" class="hidden btn btn-primary">↓ Instalar app</button>
-      <button id="abrir-ancla" class="btn !border-blanco">¿Desenfocado? →</button>
       <button id="abrir-menu" class="btn !px-2.5" aria-label="Abrir menú" aria-haspopup="dialog">
         <span class="block w-4 space-y-[3px]" aria-hidden="true">
           <span class="block h-[2px] bg-blanco"></span>
@@ -232,11 +233,11 @@ function viewIdeas(){
   let h = `
   <div class="card">
     <p class="label">CAPTURA RÁPIDA</p>
-    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; el bloque de ideación es su momento de trabajarla.</p>
+    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; ya la trabajarás en su momento.</p>
     <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
     <button class="btn btn-primary mt-2" id="add-idea">Guardar y volver al bloque</button>
   </div>`;
-  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas. El bloque de ideación del domingo es tu momento.</p>`;
+  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas capturadas.</p>`;
   $.each(data.ideas, function(_, i){
     h += `
     <div class="card flex gap-3 items-start">
@@ -783,7 +784,7 @@ $(function(){
 (function(){
   const DISMISS_KEY = "sistema-personal-install-dismissed";
   const $banner = $("#install-banner");
-  const $header = $("#install-header");
+  const $installWrap = $("#install-menu-wrap");
   let deferredPrompt = null;
 
   const esStandalone = () =>
@@ -796,8 +797,8 @@ $(function(){
   function descartado(){ try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch(e){ return false; } }
   function descartar(){ try { localStorage.setItem(DISMISS_KEY, "1"); } catch(e){} $banner.addClass("hidden"); }
 
-  // Botón del header: siempre disponible mientras se pueda instalar (aunque se descarte el banner)
-  function sincHeader(){ $header.toggleClass("hidden", !instalable()); }
+  // Botón del menú: siempre disponible mientras se pueda instalar (aunque se descarte el banner)
+  function sincHeader(){ $installWrap.toggleClass("hidden", !instalable()); }
 
   function mostrarBanner(){
     if(esStandalone() || descartado()) return;
@@ -829,7 +830,7 @@ $(function(){
   });
 
   $("#install-si").on("click", instalar);
-  $("#install-header").on("click", instalar);
+  $("#install-menu").on("click", instalar);
   $("#install-no").on("click", descartar);
 
   window.addEventListener("appinstalled", function(){

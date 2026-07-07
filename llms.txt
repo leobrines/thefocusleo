@@ -8,7 +8,7 @@ La app tiene cuatro pestañas principales (Sentido, Semana, Ideas, Revisión) m�
 
 - **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque (aplicación de *values affirmation*).
 - **Semana**: organizo la semana en bloques por día (hora, en qué área trabajo y cuánto dura), con el formato "si es [día] a las [hora] → hago [área]" (implementation intentions). La regla es: un solo foco por bloque, lo demás no existe. El día actual se resalta.
-- **Ideas**: captura rápida para sacar la idea de la cabeza y volver al bloque (protege el foco de la interrupción); el bloque de ideación es su momento de trabajarla.
+- **Ideas**: captura rápida para sacar la idea de la cabeza y volver al bloque (protege el foco de la interrupción); ya la trabajaré en su momento.
 - **Revisión**: revisión semanal donde registro **qué progreso hice en trabajo que importa**, qué avancé, qué sigue y si releí mi documento de sentido. Queda un historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior).
 
 El menú hamburguesa contiene:
