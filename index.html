@@ -80,7 +80,10 @@ tailwind.config = {
 const KEY = "sistema-personal-v1";
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
-const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"],["datos","DATOS"]];
+const SCHEMA_VERSION = 1;
+const APP_ID = "sistema-personal";
+const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
 
 const DEFAULT_DATA = {
   sentido:{
@@ -209,6 +212,83 @@ function viewRevision(){
   return h;
 }
 
+function viewDatos(){
+  return `
+  <div class="card">
+    <p class="label">EXPORTAR</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Descarga una copia de seguridad con todos tus datos (sentido, semana, ideas y revisiones) en un archivo JSON. Guárdalo en un lugar seguro.</p>
+    <button class="btn btn-primary" id="export-datos">Exportar copia</button>
+  </div>
+  <div class="card">
+    <p class="label">IMPORTAR</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Restaura desde un archivo de copia previamente exportado. <span class="text-blanco">Reemplaza todos los datos actuales.</span></p>
+    <input type="file" accept="application/json,.json" id="import-file" class="hidden">
+    <button class="btn" id="import-datos">Importar copia…</button>
+    <p id="datos-status" class="text-sm mt-3 font-mono whitespace-pre-wrap"></p>
+  </div>`;
+}
+
+/* ---------- Export / Import ---------- */
+function exportData(){
+  const store = {};
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.indexOf(PREFIX) === 0){
+      const raw = localStorage.getItem(k);
+      try { store[k] = JSON.parse(raw); } catch(e){ store[k] = raw; }
+    }
+  }
+  const backup = {
+    app: APP_ID,
+    schemaVersion: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: store
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sistema-personal-backup-${hoyISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $("#datos-status").text("✓ Copia exportada.");
+}
+
+function importData(ev){
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = ""; // permite reimportar el mismo archivo
+  if(!file) return;
+  const $s = $("#datos-status");
+  const reader = new FileReader();
+  reader.onload = function(){
+    let backup;
+    try { backup = JSON.parse(reader.result); }
+    catch(e){ $s.text("✕ Archivo inválido: no es un JSON legible."); return; }
+    if(!backup || backup.app !== APP_ID || !backup.data || typeof backup.data !== "object"){
+      $s.text("✕ Este archivo no es una copia de Sistema Personal."); return;
+    }
+    if(typeof backup.schemaVersion === "number" && backup.schemaVersion > SCHEMA_VERSION){
+      $s.text("✕ La copia usa una versión más nueva del formato. Actualiza la app."); return;
+    }
+    if(!window.confirm("Esto reemplazará todos tus datos actuales por los de la copia. ¿Continuar?")) return;
+    try {
+      Object.keys(backup.data).forEach(function(k){
+        if(k.indexOf(PREFIX) !== 0) return;
+        const v = backup.data[k];
+        localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v));
+      });
+    } catch(e){ $s.text("✕ No se pudieron guardar los datos (¿almacenamiento lleno?)."); return; }
+    try { data = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAULT_DATA); }
+    catch(e){ data = structuredClone(DEFAULT_DATA); }
+    render();
+    $("#datos-status").text("✓ Datos importados correctamente.");
+  };
+  reader.onerror = function(){ $s.text("✕ No se pudo leer el archivo."); };
+  reader.readAsText(file);
+}
+
 /* ---------- Render ---------- */
 function renderTabs(){
   const $t = $("#tabs").empty();
@@ -217,7 +297,7 @@ function renderTabs(){
   });
 }
 function render(){
-  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
+  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision, datos: viewDatos };
   $("#main").html(views[tab]());
 }
 
@@ -283,6 +363,11 @@ $(function(){
     data.revisiones.unshift({id:uid(), fecha:hoyISO(), avance, siguiente, releido});
     save(); render();
   });
+
+  // Datos (export / import)
+  $m.on("click", "#export-datos", exportData);
+  $m.on("click", "#import-datos", function(){ $("#import-file").trigger("click"); });
+  $m.on("change", "#import-file", importData);
 
   // Ancla
   $("#abrir-ancla").on("click", function(){
