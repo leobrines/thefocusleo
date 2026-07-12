@@ -1,8 +1,14 @@
 # Sistema Personal — PWA
 
-App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**. Cinco pestañas: **Hoy** (pantalla por defecto: solo los bloques de hoy, con lo que va *ahora* y lo que *sigue*, un botón **Empezar** que abre un temporizador de foco con cuenta atrás, y **Hecho** para marcar el bloque completado con feedback inmediato), **Sentido** (documento de sentido), **Semana** (bloques semanales, cada uno con una conducta concreta y un propósito activo al que sirve), **Ideas** (captura rápida) y **Revisión** (revisión semanal). Además, el botón **"¿Desenfocado?"** recuerda, ante la distracción, ignorarla y volver al bloque (no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
+App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**, con una arquitectura **de ejecución primero**. En vez de varias pestañas coiguales, tres modos en una **navegación inferior** (zona del pulgar):
 
-Los principios detrás del diseño (tiempo visible contra la ceguera al tiempo, recompensa inmediata al completar, una cosa a la vez, y cero mecánicas de culpa o rachas) están respaldados por evidencia; los estudios están enlazados dentro de la app, en **Menú → Acerca**.
+- **Ahora** (pantalla por defecto): muestra **una sola cosa** en grande —el bloque que va *ahora* o el que *sigue*, con el reloj visible—. Botones **Empezar** (temporizador de foco con cuenta atrás), **Solo 5 min** (arranque mínimo para romper la barrera de inicio) y **Hecho** (marca el bloque completado con feedback inmediato).
+- **Plan**: un solo lugar para decidir, con secciones colapsables — tu semana de bloques (conducta concreta + propósito activo al que sirve), tu porqué (documento de sentido) y la bandeja de ideas capturadas.
+- **Avance**: una tira visual de tus últimos 7 días (lo que ya hiciste, sin rachas ni culpa) más la revisión semanal.
+
+Un **botón flotante "+"** captura ideas desde cualquier pantalla (a un toque, para no perder el foco), y el botón **"¿Perdido?"** abre el ancla que, ante la distracción, recuerda ignorarla y volver al bloque (no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
+
+Los principios detrás del diseño (tiempo visible contra la ceguera al tiempo, recompensa inmediata al completar, una cosa a la vez, arranque mínimo, captura ambiental, y cero mecánicas de culpa o rachas) están respaldados por evidencia; los estudios están enlazados dentro de la app, en **Menú → Acerca**.
 
 ## Archivos
 - `index.html` — la app completa (Tailwind con tema custom blanco/negro + jQuery, vía CDN, sin build)

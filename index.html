@@ -44,12 +44,27 @@ tailwind.config = {
     .label { @apply text-[11px] text-gris tracking-widest font-mono mb-2; }
     .tab-btn { @apply text-gris px-1 py-2.5 text-xs font-mono tracking-wider border-b-2 border-transparent whitespace-nowrap; }
     .tab-btn.active { @apply text-blanco border-blanco; }
+    /* Navegación inferior (mobile-first, zona del pulgar): pocos modos, predecibles */
+    .navbtn { @apply flex-1 flex flex-col items-center gap-1 py-2 text-gris cursor-pointer; }
+    .navbtn.active { @apply text-blanco; }
+    .navbtn .dot { @apply w-1.5 h-1.5 rounded-full bg-transparent; }
+    .navbtn.active .dot { @apply bg-blanco; }
+    /* Sección colapsable (divulgación progresiva): baja la carga cognitiva */
+    .sec { @apply bg-humo border border-linea rounded-xl overflow-hidden; }
+    .sec > summary { @apply flex items-center justify-between px-4 py-3.5 cursor-pointer select-none list-none; }
+    .sec > summary::-webkit-details-marker { display: none; }
+    .sec > summary::marker { content: ""; }
+    .sec > summary .abrir { @apply text-[11px] font-mono text-gris; }
+    .sec[open] > summary .abrir { display: none; }
+    .sec .cerrar { @apply hidden text-[11px] font-mono text-gris; }
+    .sec[open] > summary .cerrar { @apply inline; }
+    .sec > .sec-body { @apply px-4 pb-4 grid gap-3 border-t border-linea pt-4; }
   }
   ::selection { background: #FFFFFF; color: #000000; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
-<body class="bg-negro text-blanco font-sans pb-20 antialiased">
+<body class="bg-negro text-blanco font-sans pb-28 antialiased">
 
 <!-- Banner instalar PWA -->
 <div id="install-banner" class="hidden fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
@@ -118,13 +133,13 @@ tailwind.config = {
 </div>
 
 <div class="max-w-2xl mx-auto px-4 pt-6">
-  <header class="flex justify-between items-center gap-3 flex-wrap">
-    <div>
-      <h1 class="text-xl font-bold tracking-tight">Sistema personal</h1>
-      <p class="font-mono text-[11px] text-gris tracking-widest">EJECUTAR SIN MOTIVACIÓN</p>
+  <header class="flex justify-between items-center gap-3">
+    <div class="min-w-0">
+      <h1 id="titulo" class="text-xl font-bold tracking-tight">Ahora</h1>
+      <p id="subtitulo" class="font-mono text-[11px] text-gris tracking-widest">UNA COSA A LA VEZ</p>
     </div>
-    <div class="flex items-center gap-2 flex-wrap">
-      <button id="abrir-ancla" class="btn !text-[11px]" aria-haspopup="dialog">¿Desenfocado?</button>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="abrir-ancla" class="btn !text-[11px]" aria-haspopup="dialog">¿Perdido?</button>
       <button id="abrir-menu" class="btn !px-2.5" aria-label="Abrir menú" aria-haspopup="dialog">
         <span class="block w-4 space-y-[3px]" aria-hidden="true">
           <span class="block h-[2px] bg-blanco"></span>
@@ -135,8 +150,33 @@ tailwind.config = {
     </div>
   </header>
 
-  <nav id="tabs" class="flex gap-5 mt-5 border-b border-linea overflow-x-auto"></nav>
   <main id="main" class="mt-5 grid gap-3"></main>
+</div>
+
+<!-- Botón flotante: capturar una idea sin salir de lo que haces (≤2 toques, protege el foco) -->
+<button id="fab-capturar" class="fixed z-40 right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-14 h-14 rounded-full bg-blanco text-negro border border-blanco shadow-lg flex items-center justify-center" aria-label="Capturar una idea" aria-haspopup="dialog">
+  <span class="text-2xl leading-none font-light" aria-hidden="true">+</span>
+</button>
+
+<!-- Navegación inferior: 3 modos, predecible, en la zona del pulgar -->
+<nav id="nav" class="fixed z-30 inset-x-0 bottom-0 bg-negro border-t border-linea pb-[env(safe-area-inset-bottom)]" aria-label="Navegación principal">
+  <div class="max-w-2xl mx-auto flex"></div>
+</nav>
+
+<!-- Hoja: capturar idea -->
+<div id="capturar" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Capturar una idea">
+  <div id="capturar-backdrop" class="absolute inset-0 bg-negro/80 backdrop-blur-sm"></div>
+  <div class="absolute inset-x-0 bottom-0 bg-negro border-t border-linea rounded-t-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+    <div class="max-w-2xl mx-auto">
+      <div class="flex justify-between items-center mb-3">
+        <p class="font-mono text-[11px] tracking-widest text-gris">SÁCALA DE LA CABEZA Y VUELVE</p>
+        <button id="capturar-cerrar" class="btn !px-2.5" aria-label="Cerrar">✕</button>
+      </div>
+      <textarea id="capturar-texto" class="input" rows="3" placeholder="Una idea que te distrae… captúrala y sigue en lo tuyo."></textarea>
+      <button id="capturar-guardar" class="btn btn-primary w-full mt-3 !py-3">Guardar y volver</button>
+      <p id="capturar-status" class="text-tenue text-[11px] font-mono mt-2 text-center"></p>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -144,7 +184,9 @@ tailwind.config = {
 const KEY = "sistema-personal-v1";
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
-const TABS = [["hoy","HOY"],["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+// Arquitectura radical: en vez de 5 pestañas coiguales, 3 modos con propósito, en navegación
+// inferior (zona del pulgar). AHORA = ejecutar (home) · PLAN = decidir · AVANCE = ver progreso.
+const MODOS = [["ahora","AHORA"],["plan","PLAN"],["avance","AVANCE"]];
 const MENU_TABS = [["config","CONFIGURACIÓN"],["datos","DATOS"],["acerca","ACERCA"]];
 const SCHEMA_VERSION = 4;
 const APP_ID = "sistema-personal";
@@ -242,14 +284,15 @@ function desmarcarHecho(bloqueId, fecha){
   save();
 }
 
-let tab = "hoy";
+let tab = "ahora";
 let menuTab = "config";
 
 /* ---------- Vistas ---------- */
-// HOY: superficie de ejecución (no de edición). Vista del día por defecto contra la ceguera al
-// tiempo; marca "Ahora" y "Sigue", hace visible cuánto falta, y permite Empezar (temporizador de
-// foco) y marcar Hecho con feedback inmediato. Editar/planificar bloques sigue en SEMANA.
-function viewHoy(){
+// AHORA: la pantalla-hogar de ejecución (no de edición). Se abre aquí. Muestra UNA cosa —lo que va
+// ahora o lo que sigue— en grande, con el tiempo visible, contra la ceguera al tiempo. Permite
+// Empezar (temporizador de foco), "Solo 5 min" (romper la barrera de inicio) y marcar Hecho con
+// feedback inmediato. Planificar bloques vive en PLAN.
+function viewAhora(){
   const now = new Date();
   const hoy = now.getDay();
   const fecha = hoyISO();
@@ -284,7 +327,12 @@ function viewHoy(){
       <p class="label !text-blanco">AHORA · ${relojHM}</p>
       <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
       <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>
-      <button class="btn btn-primary mt-3 hoy-empezar" data-id="${b.id}">▶ Empezar en foco</button>`;
+      <div class="flex gap-2 mt-4 flex-wrap">
+        <button class="btn btn-primary !py-3 !px-5 hoy-empezar" data-id="${b.id}">▶ Empezar en foco</button>
+        <button class="btn !py-3 hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
+        <button class="btn !py-3 hoy-hecho" data-id="${b.id}">✓ Hecho</button>
+      </div>
+      <p class="text-tenue text-[11px] font-mono mt-3 leading-relaxed">Si te cuesta arrancar, empieza con 5 minutos. Empezar es casi todo.</p>`;
   } else if(sigueId){
     const b = bloques.find(x => x.id === sigueId);
     const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
@@ -292,7 +340,12 @@ function viewHoy(){
     cabecera = `
       <p class="label !text-blanco">SIGUE · EN ${esc(falta.toUpperCase())} · ${relojHM}</p>
       <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
-      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>`;
+      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>
+      <div class="flex gap-2 mt-4 flex-wrap">
+        <button class="btn btn-primary !py-3 !px-5 hoy-empezar" data-id="${b.id}">▶ Empezar ahora</button>
+        <button class="btn !py-3 hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
+      </div>
+      <p class="text-tenue text-[11px] font-mono mt-3 leading-relaxed">No hace falta esperar la hora exacta: si puedes, arranca ya. Empezar es casi todo.</p>`;
   } else {
     cabecera = `
       <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
@@ -331,6 +384,7 @@ function viewHoy(){
         <p class="text-gris text-[11px] font-mono mt-1">${huerfano ? "⚠ " + esc(b.area) + " (sin propósito activo)" : (b.area ? "sirve a: " + esc(b.area) : "sin propósito vinculado")}</p>
         <div class="flex gap-2 mt-3 flex-wrap">
           <button class="btn hoy-empezar" data-id="${b.id}">▶ Empezar</button>
+          <button class="btn hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
           <button class="btn hoy-hecho" data-id="${b.id}">✓ Hecho</button>
         </div>
       </div>`;
@@ -339,6 +393,52 @@ function viewHoy(){
 
   h += `<p class="text-gris text-sm leading-relaxed">Un solo foco por bloque: cuando estás en uno, lo demás no existe. Marcar “hecho” al terminar te da la señal de avance en el momento, no dentro de una semana.</p>`;
   return h;
+}
+
+// Cabecera de una sección colapsable (divulgación progresiva).
+function seccion(titulo, cuerpo, abierta){
+  return `
+  <details class="sec"${abierta ? " open" : ""}>
+    <summary><span class="label !mb-0">${titulo}</span><span><span class="abrir">ver</span><span class="cerrar">ocultar</span></span></summary>
+    <div class="sec-body">${cuerpo}</div>
+  </details>`;
+}
+
+// PLAN: un solo lugar para decidir. Reúne la semana (bloques), el porqué (Sentido) y las ideas
+// capturadas, en secciones colapsables para no abrumar. La semana abierta por defecto.
+function viewPlan(){
+  return seccion("TU SEMANA · BLOQUES", viewSemana(), true)
+       + seccion("TU PORQUÉ · SENTIDO", viewSentido(), false)
+       + seccion(`IDEAS CAPTURADAS · ${data.ideas.length}`, viewIdeasInbox(), false);
+}
+
+// AVANCE: ver el progreso (motivación), no auditarse. Tira visual de 7 días + la revisión semanal.
+function viewAvance(){
+  const celdas = [];
+  for(let i = 6; i >= 0; i--){
+    const iso = isoHaceDias(i);
+    const d = new Date(); d.setDate(d.getDate() - i);
+    celdas.push({ ini: DIAS[d.getDay()][0], count: data.hechos.filter(h => h.fecha === iso).length, hoy: i === 0 });
+  }
+  const total = celdas.reduce((s, c) => s + c.count, 0);
+  let tira = "";
+  celdas.forEach(function(c){
+    tira += `
+    <div class="flex-1 flex flex-col items-center gap-1">
+      <span class="font-mono text-[10px] ${c.hoy ? "text-blanco" : "text-tenue"}">${esc(c.ini)}</span>
+      <div class="w-full aspect-square rounded-md flex items-center justify-center border ${c.count > 0 ? "bg-blanco text-negro border-blanco" : "border-linea text-tenue"} ${c.hoy ? "ring-1 ring-blanco ring-offset-2 ring-offset-negro" : ""}">
+        <span class="font-mono text-sm font-semibold">${c.count > 0 ? c.count : "·"}</span>
+      </div>
+    </div>`;
+  });
+  let h = `
+  <div class="card !bg-negro border-blanco">
+    <p class="label !text-blanco">TU AVANCE · ÚLTIMOS 7 DÍAS</p>
+    <p class="text-2xl font-semibold">✓ ${total} ${total === 1 ? "bloque hecho" : "bloques hechos"}</p>
+    <div class="flex gap-1.5 mt-4">${tira}</div>
+    <p class="text-gris text-sm mt-3 leading-relaxed">No es una meta ni una racha: es lo que ya avanzaste. Un día en blanco no rompe nada. Percibir el propio progreso es el mayor motor de motivación.</p>
+  </div>`;
+  return h + viewRevision();
 }
 
 function viewSentido(){
@@ -418,19 +518,16 @@ function viewSemana(){
   return h;
 }
 
-function viewIdeas(){
-  let h = `
-  <div class="card">
-    <p class="label">CAPTURA RÁPIDA</p>
-    <p class="text-gris text-sm mb-2 leading-relaxed">Cuando surja una idea que te distrae, captúrala aquí y vuelve al bloque. Sacarla de la cabeza protege tu foco sin darle atención a la interrupción; ya la trabajarás en su momento.</p>
-    <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
-    <button class="btn btn-primary mt-2" id="add-idea">Guardar y volver al bloque</button>
-  </div>`;
-  if(data.ideas.length === 0) h += `<p class="text-tenue text-sm">Aún no hay ideas capturadas.</p>`;
+// Bandeja de ideas capturadas (la captura en sí vive en el botón flotante +, disponible siempre).
+function viewIdeasInbox(){
+  if(data.ideas.length === 0){
+    return `<p class="text-tenue text-sm leading-relaxed">Aún no hay ideas capturadas. Cuando una idea te distraiga, pulsa el botón <span class="text-blanco">+</span> para sacarla de la cabeza sin perder el foco; ya la trabajarás en su momento.</p>`;
+  }
+  let h = "";
   $.each(data.ideas, function(_, i){
     h += `
     <div class="card flex gap-3 items-start">
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <p class="font-mono text-[11px] text-gris">${esc(i.fecha)}</p>
         <p class="mt-1 leading-relaxed whitespace-pre-wrap">${esc(i.texto)}</p>
       </div>
@@ -441,14 +538,7 @@ function viewIdeas(){
 }
 
 function viewRevision(){
-  const desde7 = isoHaceDias(6);
-  const nHechos = data.hechos.filter(h => h.fecha >= desde7 && h.fecha <= hoyISO()).length;
   let h = `
-  ${nHechos > 0 ? `<div class="card !bg-negro border-blanco">
-    <p class="label !text-blanco">ÚLTIMOS 7 DÍAS</p>
-    <p class="text-2xl font-semibold">✓ ${nHechos} ${nHechos === 1 ? "bloque hecho" : "bloques hechos"}</p>
-    <p class="text-gris text-sm mt-1 leading-relaxed">No es una meta ni una racha: es lo que ya avanzaste. Percibir el propio progreso es el mayor motor de motivación.</p>
-  </div>` : ""}
   <div class="card">
     <p class="label !text-blanco">REVISIÓN SEMANAL</p>
     <p class="text-sm mb-1.5">¿Qué progreso hiciste esta semana en trabajo que importa?</p>
@@ -560,7 +650,7 @@ function viewMenuAcerca(){
   <div class="card !bg-negro border-blanco">
     <p class="label !text-blanco">PROPÓSITO</p>
     <p class="leading-relaxed">thefocusleo no es una app de productividad. No busca que hagas más: busca que estés enfocado, que lo que hagas tenga sentido para ti y que dediques tu energía a lo de mayor impacto. Menos, pero mejor. Cada funcionalidad existe solo si la ciencia la respalda.</p>
-    <p class="leading-relaxed mt-3">Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH): una cosa a la vez, el tiempo hecho visible (la pestaña <span class="text-blanco">Hoy</span> con lo que va ahora y lo que sigue, y una cuenta atrás al empezar), recompensa inmediata al marcar un bloque como hecho, y cero mecánicas de culpa o rachas: fallar un día no rompe nada.</p>
+    <p class="leading-relaxed mt-3">Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH): una cosa a la vez (la pantalla <span class="text-blanco">Ahora</span> muestra solo lo que va ahora o lo que sigue, en grande), el tiempo hecho visible con una cuenta atrás al empezar un bloque, recompensa inmediata al marcar un bloque como hecho, captura de ideas a un toque para no perder el foco, y cero mecánicas de culpa o rachas: fallar un día no rompe nada.</p>
   </div>
   <p class="label !text-blanco mt-1">BASE CIENTÍFICA</p>
   ${lista}
@@ -850,15 +940,24 @@ function aplicarImport(mode){
 }
 
 /* ---------- Render ---------- */
-function renderTabs(){
-  const $t = $("#tabs").empty();
-  $.each(TABS, function(_, t){
-    $t.append(`<button class="tab-btn ${tab===t[0] ? "active" : ""}" data-tab="${t[0]}">${t[1]}</button>`);
+// Navegación inferior de 3 modos (AHORA · PLAN · AVANCE).
+function renderNav(){
+  const $n = $("#nav > div").empty();
+  $.each(MODOS, function(_, m){
+    $n.append(`<button class="navbtn ${tab===m[0] ? "active" : ""}" data-modo="${m[0]}" aria-current="${tab===m[0] ? "page" : "false"}"><span class="dot"></span><span class="text-[11px] font-mono tracking-wider">${m[1]}</span></button>`);
   });
 }
+const TITULOS = {
+  ahora: ["Ahora", "UNA COSA A LA VEZ"],
+  plan:  ["Plan", "DECIDE UNA VEZ, EJECUTA SIN NEGOCIAR"],
+  avance:["Avance", "LO QUE YA HICISTE"]
+};
 function render(){
-  const views = { hoy: viewHoy, sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
-  $("#main").html(views[tab]());
+  const views = { ahora: viewAhora, plan: viewPlan, avance: viewAvance };
+  $("#main").html((views[tab] || viewAhora)());
+  const t = TITULOS[tab] || TITULOS.ahora;
+  $("#titulo").text(t[0]);
+  $("#subtitulo").text(t[1]);
 }
 
 function renderMenuTabs(){
@@ -894,12 +993,15 @@ function tickFoco(){
   if(foco.restante <= 0){ foco.restante = 0; foco.corriendo = false; clearInterval(foco.tick); foco.tick = null; }
   pintarFoco();
 }
-function abrirFoco(bloqueId){
+// minOverride (opcional): arranca con esa cantidad de minutos en vez de la duración del bloque.
+// Se usa para "Solo 5 min" (romper la barrera de inicio: comprometerse a un arranque mínimo).
+function abrirFoco(bloqueId, minOverride){
   const b = data.bloques.find(x => x.id === bloqueId);
   if(!b) return;
   clearInterval(foco.tick);
   foco.id = bloqueId;
-  foco.restante = parseMin(b.dur) * 60;
+  const mins = (minOverride && parseInt(minOverride, 10) > 0) ? parseInt(minOverride, 10) : parseMin(b.dur);
+  foco.restante = mins * 60;
   foco.corriendo = true;
   $("#foco-conducta").text((b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "Tu bloque"));
   $("#foco-area").text(b.area ? "sirve a: " + b.area : "");
@@ -916,18 +1018,20 @@ function cerrarFoco(){
 
 /* ---------- Eventos (delegación jQuery) ---------- */
 $(function(){
-  renderTabs();
+  renderNav();
   render();
 
-  $("#tabs").on("click", ".tab-btn", function(){
-    tab = $(this).data("tab");
-    renderTabs(); render();
-  });
+  // Navegación inferior entre modos.
+  const irA = function(modo){ tab = modo; renderNav(); render(); window.scrollTo(0, 0); };
+  $("#nav").on("click", ".navbtn", function(){ irA($(this).data("modo")); });
 
   const $m = $("#main");
 
-  // Hoy (ejecución): empezar en foco, marcar hecho / deshacer con feedback inmediato.
-  $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id")); });
+  // Enlaces internos que cambian de modo (p. ej. "Planear mi semana →" desde Ahora).
+  $m.on("click", ".ir-modo", function(){ irA($(this).data("modo")); });
+
+  // Ahora (ejecución): empezar en foco (o "Solo 5 min" vía data-min), marcar hecho / deshacer.
+  $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id"), $(this).data("min")); });
   $m.on("click", ".hoy-hecho", function(){ marcarHecho($(this).data("id"), hoyISO()); render(); });
   $m.on("click", ".hoy-deshacer", function(){ desmarcarHecho($(this).data("id"), hoyISO()); render(); });
 
@@ -942,16 +1046,38 @@ $(function(){
   $("#foco-hecho").on("click", function(){
     if(foco.id) marcarHecho(foco.id, hoyISO());
     cerrarFoco();
-    if(tab === "hoy") render();
+    if(tab === "ahora") render();
   });
 
-  // Refresco periódico de HOY para que "Ahora/Sigue" y el reloj no queden obsoletos.
-  // Solo cuando HOY está activa y sin overlays abiertos (no hay campos de texto que interrumpir).
+  // Captura ambiental (botón flotante +): sacar la idea de la cabeza sin salir de lo que haces.
+  const abrirCapturar = function(){
+    $("#capturar-status").text("");
+    $("#capturar-texto").val("");
+    $("#capturar").removeClass("hidden");
+    setTimeout(function(){ $("#capturar-texto").trigger("focus"); }, 50);
+  };
+  const cerrarCapturar = function(){ $("#capturar").addClass("hidden"); };
+  $("#fab-capturar").on("click", abrirCapturar);
+  $("#capturar-cerrar, #capturar-backdrop").on("click", cerrarCapturar);
+  $("#capturar-guardar").on("click", function(){
+    const t = $("#capturar-texto").val().trim();
+    if(!t){ cerrarCapturar(); return; }
+    data.ideas.unshift({ id: uid(), texto: t, fecha: hoyISO() });
+    save();
+    $("#capturar-texto").val("");
+    $("#capturar-status").text("✓ Capturada. Vuelve a lo tuyo.");
+    if(tab === "plan") render();
+    setTimeout(cerrarCapturar, 650);
+  });
+
+  // Refresco periódico de AHORA para que "Ahora/Sigue" y el reloj no queden obsoletos.
+  // Solo cuando AHORA está activa y sin overlays abiertos (no hay campos de texto que interrumpir).
   setInterval(function(){
-    if(tab === "hoy"
+    if(tab === "ahora"
        && $("#foco").hasClass("hidden")
        && $("#ancla").hasClass("hidden")
-       && $("#menu").hasClass("hidden")){
+       && $("#menu").hasClass("hidden")
+       && $("#capturar").hasClass("hidden")){
       render();
     }
   }, 60000);
@@ -991,13 +1117,7 @@ $(function(){
     save(); render();
   });
 
-  // Ideas
-  $m.on("click", "#add-idea", function(){
-    const t = $("#idea-nueva").val().trim();
-    if(!t) return;
-    data.ideas.unshift({id:uid(), texto:t, fecha:hoyISO()});
-    save(); render();
-  });
+  // Ideas (la captura se hace desde el botón flotante +; aquí solo se eliminan de la bandeja)
   $m.on("click", ".del-idea", function(){
     data.ideas = data.ideas.filter(x => x.id !== $(this).data("id"));
     save(); render();
