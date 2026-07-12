@@ -472,7 +472,7 @@ function viewAreasEditor(){
     h += `
     <div class="card">
       <input class="input font-semibold mb-2" value="${esc(a.nombre)}" data-area="${a.id}" data-f="nombre" placeholder="Nombre del área (ej. Proyectos)">
-      <textarea class="input" rows="3" data-area="${a.id}" data-f="proposito" placeholder="¿Por qué importa? Una frase que te recuerde la decisión que ya tomaste.">${esc(a.proposito)}</textarea>
+      <textarea class="input" rows="3" data-area="${a.id}" data-f="proposito" placeholder="¿Por qué te importa de verdad? Una frase con un porqué fuerte que te recuerde la decisión que ya tomaste. Si te da igual, no lo pongas: un porqué débil no sostiene ningún plan.">${esc(a.proposito)}</textarea>
       <button class="btn mt-2 !text-[11px] del-area" data-id="${a.id}">Eliminar área</button>
     </div>`;
   });
@@ -499,10 +499,10 @@ function viewConstruir(){
       g:"Antes del qué hacer, el para qué. Escribe sin filtro: qué persona estás construyendo, qué vida conecta tus proyectos, tu estudio y tus ideas. No tiene que quedar perfecto; puedes volver cuando quieras." },
     { k:"areas",
       t:"¿Por qué? Tus áreas.",
-      g:"Divide tu vida en unas pocas áreas (2 a 4 bastan). En cada una, escribe en una frase por qué importa: no una meta, sino la decisión que ya tomaste. Eso será tu ancla cuando el foco se pierda." },
+      g:"Divide tu vida en unas pocas áreas (2 a 4 bastan). En cada una, escribe en una frase por qué importa: no una meta vaga, sino una decisión que ya tomaste sobre algo que de verdad te importa. Sé honesto: si un porqué te da igual, ningún plan que cuelgue de él va a moverte. Ese porqué fuerte será tu ancla cuando el foco se pierda." },
     { k:"bloques",
       t:"Convierte un porqué en acción.",
-      g:"Ahora aterriza uno o dos porqués en bloques concretos: “si es [día] a las [hora] → haré [conducta exacta]”. Reserva los bloques para lo que te cuesta iniciar. No llenes la semana: con empezar por uno basta." }
+      g:"Ahora aterriza uno o dos porqués en bloques concretos: “si es [día] a las [hora] → haré [conducta exacta]”. Reserva los bloques para lo que te cuesta iniciar. No llenes la semana: con empezar por uno basta. Al fijar un bloque, comprométete con él: “tengo la firme intención de seguir esto”." }
   ];
   const n = Math.min(Math.max(paso, 0), PASOS.length - 1);
   const p = PASOS[n];
@@ -559,7 +559,7 @@ function viewSemana(){
   <div class="card !bg-negro">
     <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HARÉ [CONDUCTA CONCRETA]</p>
     <p class="text-gris text-sm leading-relaxed">Vincular una situación exacta (cuándo y dónde) con una conducta concreta es lo que dispara la acción sola. Un día + un área es solo una meta vaga con horario: escribe la conducta exacta que harás. La decisión ya está tomada aquí; a la hora no la negocias ni la dejas “para cuando puedas”, solo la ejecutas.</p>
-    <p class="text-gris text-sm leading-relaxed mt-2">Reserva los bloques para lo que te cuesta iniciar. Lo que ya arrancas sin fricción se completa igual con o sin plan: bloquearlo solo añade peso. Cada bloque debe apuntar a un propósito activo de Sentido.</p>
+    <p class="text-gris text-sm leading-relaxed mt-2">Reserva los bloques para lo que te cuesta iniciar. Lo que ya arrancas sin fricción se completa igual con o sin plan: bloquearlo solo añade peso. Cada bloque debe apuntar a un propósito activo de Sentido, y a uno que de verdad te importe: si la meta de fondo te da igual, ningún plan colgado de ella va a moverte.</p>
   </div>`;
   $.each(ORDEN, function(_, d){
     const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
@@ -658,7 +658,7 @@ function viewMenuAcerca(){
   // Ordenados de mayor a menor solidez de la evidencia.
   const estudios = [
     ["Bloques como intención de implementación (si-entonces)",
-      "Vincular una situación exacta (cuándo/dónde) con una conducta concreta —no solo un área— es lo que dispara la acción (efecto confirmado en cientos de estudios; magnitud modesta tras corregir el sesgo de publicación). Funciona mejor cuando el plan apunta a una meta activa y se reserva para lo difícil de iniciar; lo fácil se completa igual, con o sin plan. Ante la distracción, lo efectivo es ignorarla, no esforzarse más.",
+      "Vincular una situación exacta (cuándo/dónde) con una conducta concreta —no solo un área— es lo que dispara la acción (efecto confirmado en cientos de estudios; magnitud modesta tras corregir el sesgo de publicación). Tres condiciones lo hacen funcionar: la meta de fondo debe ser fuerte (si te da igual, el plan no mueve nada), tienes que estar comprometido con el plan, y sirve mientras esa meta siga activa. Por eso se reserva para lo difícil de iniciar; lo fácil se completa igual, con o sin plan. Ante la distracción, lo efectivo es ignorarla, no esforzarse más.",
       [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
        ["Explicación (EN) · NCI", "https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions"],
        ["Explicación (ES) · Psicología y Mente", "https://psicologiaymente.com/coach/formula-pasar-accion-lograr-metas"]]],
