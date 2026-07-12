@@ -49,6 +49,9 @@ tailwind.config = {
     .navbtn.active { @apply text-blanco; }
     .navbtn .dot { @apply w-1.5 h-1.5 rounded-full bg-transparent; }
     .navbtn.active .dot { @apply bg-blanco; }
+    /* Switch entre los dos modos de la app (Construir · Actuar), diseños distintos */
+    .ms-btn { @apply flex-1 text-center px-3 py-2 text-[11px] font-mono tracking-widest text-gris cursor-pointer; }
+    .ms-btn.active { @apply bg-blanco text-negro font-semibold; }
     /* Sección colapsable (divulgación progresiva): baja la carga cognitiva */
     .sec { @apply bg-humo border border-linea rounded-xl overflow-hidden; }
     .sec > summary { @apply flex items-center justify-between px-4 py-3.5 cursor-pointer select-none list-none; }
@@ -150,6 +153,9 @@ tailwind.config = {
     </div>
   </header>
 
+  <!-- Switch entre los dos modos de la app: Construir (fundación) · Actuar (ejecución) -->
+  <div id="modeswitch" class="flex border border-linea rounded-lg overflow-hidden mt-5" role="tablist" aria-label="Modo de la app"></div>
+
   <main id="main" class="mt-5 grid gap-3"></main>
 </div>
 
@@ -240,9 +246,21 @@ function normalizar(d){
   return d;
 }
 
+// ¿Es la primera vez que se abre la app en este dispositivo? (no había datos guardados).
+// Quien arranca de cero empieza en modo Construir (fundar sentido y plan); quien ya tiene un
+// sistema, en modo Actuar (ejecutar). Es la base: primero el sentido, luego la acción.
+const primeraVez = (function(){ try { return localStorage.getItem(KEY) === null; } catch(e){ return false; } })();
+
 let data;
 try { data = normalizar(JSON.parse(localStorage.getItem(KEY))); }
 catch(e){ data = structuredClone(DEFAULT_DATA); }
+
+const modoAppValido = v => v === "construir" || v === "actuar";
+// `config.modoApp` es una preferencia de interfaz (qué modo mostrar), no contenido versionado:
+// viaja en el backup pero versiones que no la conozcan la ignoran sin problema.
+if(!modoAppValido(data.config.modoApp)) data.config.modoApp = primeraVez ? "construir" : "actuar";
+let vista = data.config.modoApp; // "construir" | "actuar"
+let paso = 0;                     // paso del asistente en modo Construir (0..2)
 
 let saveTimer = null;
 function save(){
@@ -317,9 +335,15 @@ function viewAhora(){
   // Cabecera: qué está pasando ahora mismo, en una sola frase.
   let cabecera;
   if(bloques.length === 0){
+    const sinSistema = data.bloques.length === 0;
     cabecera = `
       <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
-      <p class="text-gris text-sm leading-relaxed">Hoy no tienes bloques. Descansa o improvisa: la decisión de qué es importante ya vive en tu Semana; no la reinventes ahora.</p>`;
+      <p class="text-gris text-sm leading-relaxed">${sinSistema
+        ? "Aún no has construido tu sistema. Empieza por el sentido y el plan; con esa base, actuar será fácil."
+        : "Hoy no tienes bloques. Descansa o improvisa: la decisión de qué es importante ya vive en tu plan; no la reinventes ahora."}</p>
+      ${sinSistema
+        ? `<button class="btn btn-primary mt-3 ir-vista" data-vista="construir">Construir mi sistema →</button>`
+        : `<button class="btn btn-primary mt-3 ir-modo" data-modo="plan">Ver mi plan →</button>`}`;
   } else if(ahoraId){
     const b = bloques.find(x => x.id === ahoraId);
     const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
@@ -441,22 +465,76 @@ function viewAvance(){
   return h + viewRevision();
 }
 
-function viewSentido(){
-  let h = `
-  <div class="card">
-    <p class="label">VISIÓN GENERAL</p>
-    <textarea class="input" rows="4" data-bind="vision">${esc(data.sentido.vision)}</textarea>
-  </div>`;
+// Editor de áreas (nombre + propósito). Compartido por Sentido (modo Actuar) y el paso "áreas"
+// del asistente (modo Construir).
+function viewAreasEditor(){
+  let h = "";
   $.each(data.sentido.areas, function(_, a){
     h += `
     <div class="card">
-      <input class="input font-semibold mb-2" value="${esc(a.nombre)}" data-area="${a.id}" data-f="nombre">
-      <textarea class="input" rows="3" data-area="${a.id}" data-f="proposito">${esc(a.proposito)}</textarea>
+      <input class="input font-semibold mb-2" value="${esc(a.nombre)}" data-area="${a.id}" data-f="nombre" placeholder="Nombre del área (ej. Proyectos)">
+      <textarea class="input" rows="3" data-area="${a.id}" data-f="proposito" placeholder="¿Por qué importa? Una frase que te recuerde la decisión que ya tomaste.">${esc(a.proposito)}</textarea>
       <button class="btn mt-2 !text-[11px] del-area" data-id="${a.id}">Eliminar área</button>
     </div>`;
   });
   h += `<button class="btn" id="add-area">+ Añadir área</button>`;
   return h;
+}
+
+function viewSentido(){
+  return `
+  <div class="card">
+    <p class="label">VISIÓN GENERAL</p>
+    <textarea class="input" rows="4" data-bind="vision">${esc(data.sentido.vision)}</textarea>
+  </div>` + viewAreasEditor();
+}
+
+// MODO CONSTRUIR: para quien arranca de cero. El foco no está en el "ahora" sino en fundar el
+// sentido y el plan, en un asistente por pasos, calmado y sin presión de tiempo (ni barra
+// inferior, ni cronómetro, ni captura): primero decides quién quieres ser y por qué, y solo al
+// final pasas a actuar. Es la base sobre la que el modo Actuar tiene sentido.
+function viewConstruir(){
+  const PASOS = [
+    { k:"vision",
+      t:"¿Qué estás construyendo?",
+      g:"Antes del qué hacer, el para qué. Escribe sin filtro: qué persona estás construyendo, qué vida conecta tus proyectos, tu estudio y tus ideas. No tiene que quedar perfecto; puedes volver cuando quieras." },
+    { k:"areas",
+      t:"¿Por qué? Tus áreas.",
+      g:"Divide tu vida en unas pocas áreas (2 a 4 bastan). En cada una, escribe en una frase por qué importa: no una meta, sino la decisión que ya tomaste. Eso será tu ancla cuando el foco se pierda." },
+    { k:"bloques",
+      t:"Convierte un porqué en acción.",
+      g:"Ahora aterriza uno o dos porqués en bloques concretos: “si es [día] a las [hora] → haré [conducta exacta]”. Reserva los bloques para lo que te cuesta iniciar. No llenes la semana: con empezar por uno basta." }
+  ];
+  const n = Math.min(Math.max(paso, 0), PASOS.length - 1);
+  const p = PASOS[n];
+  let barra = "";
+  for(let i = 0; i < PASOS.length; i++){
+    barra += `<div class="flex-1 h-1 rounded-full ${i <= n ? "bg-blanco" : "bg-linea"}"></div>`;
+  }
+  let cuerpo;
+  if(p.k === "vision"){
+    cuerpo = `<textarea class="input !text-lg !leading-relaxed" rows="7" data-bind="vision" placeholder="Quiero construir…">${esc(data.sentido.vision)}</textarea>`;
+  } else if(p.k === "areas"){
+    cuerpo = viewAreasEditor();
+  } else {
+    cuerpo = viewSemana();
+  }
+  const ultimo = n === PASOS.length - 1;
+  return `
+  <div class="pt-1">
+    <p class="font-mono text-[11px] tracking-[0.15em] text-gris">FUNDACIÓN · PASO ${n + 1} DE ${PASOS.length}</p>
+    <div class="flex gap-1.5 mt-3">${barra}</div>
+    <h2 class="text-3xl font-bold tracking-tight mt-8 leading-tight">${esc(p.t)}</h2>
+    <p class="text-gris leading-relaxed mt-3">${esc(p.g)}</p>
+    <div class="mt-7 grid gap-3">${cuerpo}</div>
+    <div class="flex gap-2 mt-9 ${n > 0 ? "justify-between" : "justify-end"}">
+      ${n > 0 ? `<button class="btn !py-3 !px-5 wiz-atras">← Atrás</button>` : ""}
+      ${ultimo
+        ? `<button class="btn btn-primary !py-3 !px-5 wiz-listo">Listo, quiero actuar →</button>`
+        : `<button class="btn btn-primary !py-3 !px-5 wiz-siguiente">Siguiente →</button>`}
+    </div>
+    <p class="text-tenue text-[11px] font-mono mt-6 leading-relaxed">Esto es tu fundación, no un examen. Puedes volver a Construir cuando quieras desde el switch de arriba.</p>
+  </div>`;
 }
 
 // <select> de áreas de Sentido para vincular el bloque a un propósito activo (punto 5).
@@ -933,9 +1011,11 @@ function aplicarImport(mode){
 
   try { data = normalizar(JSON.parse(localStorage.getItem(KEY))); }
   catch(e){ data = structuredClone(DEFAULT_DATA); }
+  if(!modoAppValido(data.config.modoApp)) data.config.modoApp = "actuar";
+  vista = data.config.modoApp; // respeta el modo que traiga el backup (o Actuar por defecto)
   pendingImport = null;
   renderMenu(); // re-dibuja el menú DATOS (limpia la previsualización)
-  render();     // refresca las pestañas principales por si cambiaron los datos
+  render();     // refresca la vista por si cambiaron los datos o el modo
   $("#datos-status").text(mode === "replace" ? "✓ Datos reemplazados correctamente." : "✓ Datos fusionados correctamente.");
 }
 
@@ -952,7 +1032,29 @@ const TITULOS = {
   plan:  ["Plan", "DECIDE UNA VEZ, EJECUTA SIN NEGOCIAR"],
   avance:["Avance", "LO QUE YA HICISTE"]
 };
+// Switch entre los dos modos de la app (presente en ambos).
+function renderModeSwitch(){
+  const modos = [["construir","CONSTRUIR"],["actuar","ACTUAR"]];
+  const $ms = $("#modeswitch").empty();
+  $.each(modos, function(_, m){
+    $ms.append(`<button class="ms-btn ${vista===m[0] ? "active" : ""}" data-vista="${m[0]}" role="tab" aria-selected="${vista===m[0]}">${m[1]}</button>`);
+  });
+}
 function render(){
+  renderModeSwitch();
+  const enConstruir = vista === "construir";
+  // El shell de acción (barra inferior, captura, ancla) solo existe en modo Actuar.
+  $("#nav").toggleClass("hidden", enConstruir);
+  $("#fab-capturar").toggleClass("hidden", enConstruir);
+  $("#abrir-ancla").toggleClass("hidden", enConstruir);
+
+  if(enConstruir){
+    $("#main").html(viewConstruir());
+    $("#titulo").text("Construir");
+    $("#subtitulo").text("PRIMERO EL SENTIDO, LUEGO LA ACCIÓN");
+    return;
+  }
+  renderNav();
   const views = { ahora: viewAhora, plan: viewPlan, avance: viewAvance };
   $("#main").html((views[tab] || viewAhora)());
   const t = TITULOS[tab] || TITULOS.ahora;
@@ -1018,17 +1120,37 @@ function cerrarFoco(){
 
 /* ---------- Eventos (delegación jQuery) ---------- */
 $(function(){
-  renderNav();
   render();
 
-  // Navegación inferior entre modos.
+  // Switch entre los dos modos de la app (Construir · Actuar).
+  const setVista = function(v){
+    if(!modoAppValido(v) || v === vista) return;
+    vista = v;
+    data.config.modoApp = v;
+    save();
+    render();
+    window.scrollTo(0, 0);
+  };
+  $("#modeswitch").on("click", ".ms-btn", function(){ setVista($(this).data("vista")); });
+
+  // Navegación inferior entre modos de acción (solo en modo Actuar).
   const irA = function(modo){ tab = modo; renderNav(); render(); window.scrollTo(0, 0); };
   $("#nav").on("click", ".navbtn", function(){ irA($(this).data("modo")); });
 
   const $m = $("#main");
 
-  // Enlaces internos que cambian de modo (p. ej. "Planear mi semana →" desde Ahora).
+  // Enlaces internos que cambian de modo de acción (p. ej. "Planear mi semana →" desde Ahora).
   $m.on("click", ".ir-modo", function(){ irA($(this).data("modo")); });
+  // Enlaces internos que cambian de modo de app (p. ej. "Construir mi sistema" desde un Ahora vacío).
+  $m.on("click", ".ir-vista", function(){ setVista($(this).data("vista")); });
+
+  // Asistente de Construir: avanzar / retroceder / terminar (pasa a Actuar).
+  $m.on("click", ".wiz-siguiente", function(){ paso = Math.min(paso + 1, 2); render(); window.scrollTo(0, 0); });
+  $m.on("click", ".wiz-atras", function(){ paso = Math.max(paso - 1, 0); render(); window.scrollTo(0, 0); });
+  $m.on("click", ".wiz-listo", function(){
+    paso = 0; tab = "ahora"; vista = "actuar"; data.config.modoApp = "actuar";
+    save(); render(); window.scrollTo(0, 0);
+  });
 
   // Ahora (ejecución): empezar en foco (o "Solo 5 min" vía data-min), marcar hecho / deshacer.
   $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id"), $(this).data("min")); });

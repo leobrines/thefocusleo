@@ -1,10 +1,12 @@
 # Sistema Personal — PWA
 
-App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**, con una arquitectura **de ejecución primero**. En vez de varias pestañas coiguales, tres modos en una **navegación inferior** (zona del pulgar):
+App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**. Tiene **dos modos con diseños distintos, switcheables** desde el header:
 
-- **Ahora** (pantalla por defecto): muestra **una sola cosa** en grande —el bloque que va *ahora* o el que *sigue*, con el reloj visible—. Botones **Empezar** (temporizador de foco con cuenta atrás), **Solo 5 min** (arranque mínimo para romper la barrera de inicio) y **Hecho** (marca el bloque completado con feedback inmediato).
-- **Plan**: un solo lugar para decidir, con secciones colapsables — tu semana de bloques (conducta concreta + propósito activo al que sirve), tu porqué (documento de sentido) y la bandeja de ideas capturadas.
-- **Avance**: una tira visual de tus últimos 7 días (lo que ya hiciste, sin rachas ni culpa) más la revisión semanal.
+- **Construir** (fundación, para quien arranca de cero): un **asistente por pasos** calmado, sin presión de tiempo, para generar primero el **sentido** y el **plan** — Visión → Áreas (tus porqués) → Primeros bloques. Es la base sobre la que actuar tiene sentido. Los usuarios nuevos arrancan aquí.
+- **Actuar** (ejecución del día a día): arquitectura **de ejecución primero**, con tres modos en una **navegación inferior** (zona del pulgar):
+  - **Ahora** (pantalla por defecto): muestra **una sola cosa** en grande —el bloque que va *ahora* o el que *sigue*, con el reloj visible—. Botones **Empezar** (temporizador de foco con cuenta atrás), **Solo 5 min** (arranque mínimo para romper la barrera de inicio) y **Hecho** (marca el bloque completado con feedback inmediato).
+  - **Plan**: un solo lugar para decidir, con secciones colapsables — tu semana de bloques (conducta concreta + propósito activo al que sirve), tu porqué (documento de sentido) y la bandeja de ideas capturadas.
+  - **Avance**: una tira visual de tus últimos 7 días (lo que ya hiciste, sin rachas ni culpa) más la revisión semanal.
 
 Un **botón flotante "+"** captura ideas desde cualquier pantalla (a un toque, para no perder el foco), y el botón **"¿Perdido?"** abre el ancla que, ante la distracción, recuerda ignorarla y volver al bloque (no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
 
