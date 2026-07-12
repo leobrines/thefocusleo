@@ -70,10 +70,15 @@ tailwind.config = {
 <div id="ancla" class="hidden fixed inset-0 bg-negro/95 z-50 overflow-y-auto px-5 py-12 backdrop-blur-sm" role="dialog" aria-label="Recordatorio de propósito">
   <div class="max-w-2xl mx-auto">
     <p class="font-mono text-xs tracking-[0.15em] text-blanco border-b border-linea pb-3">RESPIRA. ESTO ES LO QUE YA DECIDISTE.</p>
-    <p id="ancla-vision" class="text-2xl leading-relaxed mt-6 font-medium whitespace-pre-wrap"></p>
+    <div class="mt-6 border-l-2 border-blanco pl-4">
+      <p class="font-mono text-[11px] tracking-widest text-gris">CUANDO SURJA LA DISTRACCIÓN</p>
+      <p class="text-2xl leading-snug mt-1 font-semibold">La ignoro y vuelvo al bloque.</p>
+      <p class="text-gris text-sm mt-2 leading-relaxed">No luches contra la distracción ni te exijas más esfuerzo: solo no le des atención y retoma lo que ya decidiste. Ignorar la distracción funciona mejor que intentar esforzarte más.</p>
+    </div>
+    <p id="ancla-vision" class="text-2xl leading-relaxed mt-8 font-medium whitespace-pre-wrap"></p>
     <div id="ancla-areas" class="mt-8 space-y-5"></div>
     <div id="ancla-hoy" class="mt-10"></div>
-    <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Volver a ejecutar →</button>
+    <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Ignorar y volver al bloque →</button>
   </div>
 </div>
 
@@ -100,6 +105,7 @@ tailwind.config = {
       <p class="font-mono text-[11px] text-gris tracking-widest">EJECUTAR SIN MOTIVACIÓN</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
+      <button id="abrir-ancla" class="btn !text-[11px]" aria-haspopup="dialog">¿Desenfocado?</button>
       <button id="abrir-menu" class="btn !px-2.5" aria-label="Abrir menú" aria-haspopup="dialog">
         <span class="block w-4 space-y-[3px]" aria-hidden="true">
           <span class="block h-[2px] bg-blanco"></span>
@@ -121,7 +127,7 @@ const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
 const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
 const MENU_TABS = [["config","CONFIGURACIÓN"],["datos","DATOS"],["acerca","ACERCA"]];
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const APP_ID = "sistema-personal";
 const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
 const DUR_DEFECTO = "60 min"; // duración por defecto de un bloque nuevo (preferencia, no ciencia)
@@ -138,12 +144,11 @@ const DEFAULT_DATA = {
     ]
   },
   bloques:[
-    {id:"b1", dia:1, hora:"07:00", area:"Estudio", dur:"60 min"},
-    {id:"b2", dia:1, hora:"19:00", area:"Proyectos", dur:"90 min"},
-    {id:"b3", dia:3, hora:"19:00", area:"Proyectos", dur:"90 min"},
-    {id:"b4", dia:5, hora:"19:00", area:"Proyectos", dur:"90 min"},
-    {id:"b5", dia:0, hora:"10:00", area:"Ideación", dur:"45 min"},
-    {id:"b6", dia:0, hora:"18:00", area:"Revisión semanal", dur:"30 min"}
+    {id:"b1", dia:1, hora:"07:00", lugar:"", conducta:"Leer 20 páginas del material y anotar 3 ideas", area:"Estudio", dur:"60 min"},
+    {id:"b2", dia:1, hora:"19:00", lugar:"", conducta:"Escribir la siguiente parte del proyecto y guardar", area:"Proyectos", dur:"90 min"},
+    {id:"b3", dia:3, hora:"19:00", lugar:"", conducta:"Retomar la tarea abierta del proyecto, sin abrir nada más", area:"Proyectos", dur:"90 min"},
+    {id:"b4", dia:5, hora:"19:00", lugar:"", conducta:"Cerrar una tarea del proyecto y dejar anotada la siguiente", area:"Proyectos", dur:"90 min"},
+    {id:"b5", dia:0, hora:"10:00", lugar:"", conducta:"Escribir 5 ideas nuevas para proyectos", area:"Ideación", dur:"45 min"}
   ],
   ideas:[],
   revisiones:[]
@@ -158,6 +163,12 @@ function normalizar(d){
   if(!d.sentido || typeof d.sentido !== "object") d.sentido = structuredClone(DEFAULT_DATA.sentido);
   if(!Array.isArray(d.sentido.areas)) d.sentido.areas = [];
   if(!Array.isArray(d.bloques)) d.bloques = [];
+  d.bloques.forEach(function(b){
+    if(b && typeof b === "object"){
+      if(typeof b.conducta !== "string") b.conducta = "";
+      if(typeof b.lugar !== "string") b.lugar = "";
+    }
+  });
   if(!Array.isArray(d.ideas)) d.ideas = [];
   if(!Array.isArray(d.revisiones)) d.revisiones = [];
   d.revisiones.forEach(function(r){ if(r && typeof r.progreso !== "string") r.progreso = ""; });
@@ -201,12 +212,30 @@ function viewSentido(){
   return h;
 }
 
+// <select> de áreas de Sentido para vincular el bloque a un propósito activo (punto 5).
+// Si el área guardada ya no existe en Sentido (meta abandonada/renombrada), la conserva como
+// opción marcada para no perder el dato y que el bloque se muestre como huérfano.
+function opcionesArea(sel){
+  let found = false, opts = "";
+  $.each(data.sentido.areas, function(_, a){
+    if(!a.nombre) return;
+    const on = a.nombre === sel;
+    if(on) found = true;
+    opts += `<option ${on ? "selected" : ""}>${esc(a.nombre)}</option>`;
+  });
+  const primera = `<option value="" ${!sel ? "selected" : ""}>— vincular a un propósito —</option>`;
+  const huerfana = (sel && !found) ? `<option value="${esc(sel)}" selected>⚠ ${esc(sel)} (sin propósito activo)</option>` : "";
+  return primera + huerfana + opts;
+}
+
 function viewSemana(){
   const hoy = new Date().getDay();
+  const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
   let h = `
   <div class="card !bg-negro">
-    <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HAGO [ÁREA]</p>
-    <p class="text-gris text-sm leading-relaxed">Decidir de antemano cuándo, dónde y qué duplica la probabilidad de ejecutar. La decisión ya está tomada aquí; a la hora no la negocias, solo apareces.</p>
+    <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HARÉ [CONDUCTA CONCRETA]</p>
+    <p class="text-gris text-sm leading-relaxed">Vincular una situación exacta (cuándo y dónde) con una conducta concreta es lo que dispara la acción sola. Un día + un área es solo una meta vaga con horario: escribe la conducta exacta que harás. La decisión ya está tomada aquí; a la hora no la negocias ni la dejas “para cuando puedas”, solo la ejecutas.</p>
+    <p class="text-gris text-sm leading-relaxed mt-2">Reserva los bloques para lo que te cuesta iniciar. Lo que ya arrancas sin fricción se completa igual con o sin plan: bloquearlo solo añade peso. Cada bloque debe apuntar a un propósito activo de Sentido.</p>
   </div>`;
   $.each(ORDEN, function(_, d){
     const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
@@ -215,12 +244,25 @@ function viewSemana(){
       <p class="label ${hoy===d ? "!text-blanco" : ""}">${DIAS[d].toUpperCase()}${hoy===d ? " · HOY" : ""}</p>
       ${bloques.length===0 ? `<p class="text-tenue text-sm">Sin bloques — día libre o de descanso.</p>` : ""}`;
     $.each(bloques, function(_, b){
+      const huerfano = b.area && !areasVivas.has(b.area);
       h += `
-      <div class="flex gap-2 items-center mb-2 flex-wrap">
-        <input type="time" class="input !w-[110px]" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
-        <input class="input flex-1 !w-auto min-w-[120px]" value="${esc(b.area)}" data-bloque="${b.id}" data-f="area">
-        <input class="input !w-[90px]" value="${esc(b.dur)}" data-bloque="${b.id}" data-f="dur">
-        <button class="btn !px-2.5 del-bloque" data-id="${b.id}">✕</button>
+      <div class="border ${huerfano ? "border-dashed border-gris" : "border-linea"} rounded-lg p-3 mb-2 space-y-2">
+        <div class="flex gap-2 items-center flex-wrap">
+          <span class="font-mono text-[11px] text-gris">SI</span>
+          <input type="time" class="input !w-[104px]" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
+          <input class="input flex-1 !w-auto min-w-[100px]" placeholder="¿dónde? (opcional)" value="${esc(b.lugar||"")}" data-bloque="${b.id}" data-f="lugar">
+          <button class="btn !px-2.5 del-bloque" data-id="${b.id}">✕</button>
+        </div>
+        <div class="flex gap-2 items-start">
+          <span class="font-mono text-[11px] text-gris pt-2.5">→</span>
+          <input class="input flex-1" placeholder="conducta concreta: qué harás exactamente" value="${esc(b.conducta||"")}" data-bloque="${b.id}" data-f="conducta">
+        </div>
+        <div class="flex gap-2 items-center flex-wrap">
+          <span class="font-mono text-[11px] text-gris">sirve a</span>
+          <select class="input flex-1 !w-auto min-w-[140px]" data-bloque="${b.id}" data-f="area">${opcionesArea(b.area)}</select>
+          <input class="input !w-[86px]" placeholder="dur" value="${esc(b.dur)}" data-bloque="${b.id}" data-f="dur">
+        </div>
+        ${huerfano ? `<p class="text-gris text-[11px] font-mono leading-relaxed">⚠ Sin propósito activo en Sentido. Vincúlalo a un área o elimínalo: sin meta viva detrás, el plan deja de sostener la acción.</p>` : ""}
       </div>`;
     });
     h += `<button class="btn !text-[11px] add-bloque" data-dia="${d}">+ Bloque</button></div>`;
@@ -233,7 +275,7 @@ function viewIdeas(){
   let h = `
   <div class="card">
     <p class="label">CAPTURA RÁPIDA</p>
-    <p class="text-gris text-sm mb-2 leading-relaxed">Captura la idea y vuelve a tu bloque. Sacarla de la cabeza protege tu foco de la interrupción; ya la trabajarás en su momento.</p>
+    <p class="text-gris text-sm mb-2 leading-relaxed">Cuando surja una idea que te distrae, captúrala aquí y vuelve al bloque. Sacarla de la cabeza protege tu foco sin darle atención a la interrupción; ya la trabajarás en su momento.</p>
     <textarea class="input" rows="3" id="idea-nueva" placeholder="Idea para un proyecto nuevo o actual…"></textarea>
     <button class="btn btn-primary mt-2" id="add-idea">Guardar y volver al bloque</button>
   </div>`;
@@ -295,8 +337,8 @@ function viewMenuConfig(){
 function viewMenuAcerca(){
   // Ordenados de mayor a menor solidez de la evidencia.
   const estudios = [
-    ["Bloques semanales predefinidos",
-      "Planificar de antemano cuándo/dónde/qué aumenta la probabilidad de ejecutar (efecto confirmado en cientos de estudios; magnitud modesta una vez corregido el sesgo de publicación).",
+    ["Bloques como intención de implementación (si-entonces)",
+      "Vincular una situación exacta (cuándo/dónde) con una conducta concreta —no solo un área— es lo que dispara la acción (efecto confirmado en cientos de estudios; magnitud modesta tras corregir el sesgo de publicación). Funciona mejor cuando el plan apunta a una meta activa y se reserva para lo difícil de iniciar; lo fácil se completa igual, con o sin plan. Ante la distracción, lo efectivo es ignorarla, no esforzarse más.",
       [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
        ["Explicación (EN) · NCI", "https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions"],
        ["Explicación (ES) · Psicología y Mente", "https://psicologiaymente.com/coach/formula-pasar-accion-lograr-metas"]]],
@@ -394,8 +436,15 @@ function viewMenuDatos(){
 // parseado) de la versión v a la v+1. Debe devolver el store.
 // v1→v2: se añadió `config.durBloque` (preferencia de duración) y el campo `progreso` a cada
 // revisión. `normalizar` rellena ambos sin pisar datos existentes.
+// v2→v3: cada bloque suma `conducta` (la conducta concreta: qué/cómo exacto) y `lugar` (dónde).
+// El efecto de las intenciones de implementación viene de vincular una situación exacta con una
+// respuesta específica, no de un simple día+área. `normalizar` rellena ambos como "".
 const MIGRATIONS = {
   1: function(store){
+    if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
+    return store;
+  },
+  2: function(store){
     if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
     return store;
   }
@@ -680,16 +729,22 @@ $(function(){
   });
 
   // Semana
-  $m.on("input", "[data-bloque]", function(){
+  // "change" además de "input" para que el <select> de área (vínculo con Sentido) guarde y
+  // re-renderice el estado huérfano al instante.
+  $m.on("input", "[data-bloque]:not(select)", function(){
     const b = data.bloques.find(x => x.id === $(this).data("bloque"));
     if(b){ b[$(this).data("f")] = this.value; save(); }
+  });
+  $m.on("change", "select[data-bloque]", function(){
+    const b = data.bloques.find(x => x.id === $(this).data("bloque"));
+    if(b){ b[$(this).data("f")] = this.value; save(); render(); }
   });
   $m.on("click", ".del-bloque", function(){
     data.bloques = data.bloques.filter(x => x.id !== $(this).data("id"));
     save(); render();
   });
   $m.on("click", ".add-bloque", function(){
-    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", area:"Proyecto", dur:data.config.durBloque || DUR_DEFECTO});
+    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", lugar:"", conducta:"", area:"", dur:data.config.durBloque || DUR_DEFECTO});
     save(); render();
   });
 
@@ -766,7 +821,8 @@ $(function(){
     if(bloquesHoy.length){
       let items = "";
       $.each(bloquesHoy, function(_, b){
-        items += `<li class="font-mono text-sm"><span class="text-blanco">${esc(b.hora)}</span> <span class="text-gris">→ ${esc(b.area)}${b.dur ? " · " + esc(b.dur) : ""}</span></li>`;
+        const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "—");
+        items += `<li class="font-mono text-sm"><span class="text-blanco">${esc(b.hora)}</span> <span class="text-gris">→ ${esc(que)}${b.dur ? " · " + esc(b.dur) : ""}</span></li>`;
       });
       $h.html(`
         <p class="font-mono text-xs tracking-widest text-blanco border-t border-linea pt-4">LA DECISIÓN YA ESTÁ TOMADA — HOY, ${DIAS[hoy].toUpperCase()}</p>

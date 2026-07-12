@@ -7,7 +7,7 @@
 La app tiene cuatro pestañas principales (Sentido, Semana, Ideas, Revisión) más un **menú hamburguesa** en el header con lo secundario (Configuración, Datos, Acerca):
 
 - **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque (aplicación de *values affirmation*).
-- **Semana**: organizo la semana en bloques por día (hora, en qué área trabajo y cuánto dura), con el formato "si es [día] a las [hora] → hago [área]" (implementation intentions). La regla es: un solo foco por bloque, lo demás no existe. El día actual se resalta.
+- **Semana**: organizo la semana en bloques por día con el formato "si es [día] a las [hora], en [lugar] → haré [conducta concreta]" (implementation intentions). Cada bloque especifica la situación exacta (cuándo/dónde) y la **conducta concreta** que ejecutaré —no basta un área vaga con horario— y se vincula a un **propósito activo de Sentido** (si el área ya no existe, el bloque se marca como huérfano para relinkarlo o borrarlo). Los bloques se reservan para lo difícil de iniciar; lo fácil se completa igual con o sin plan. La regla es: un solo foco por bloque, lo demás no existe. El día actual se resalta.
 - **Ideas**: captura rápida para sacar la idea de la cabeza y volver al bloque (protege el foco de la interrupción); ya la trabajaré en su momento.
 - **Revisión**: revisión semanal donde registro **qué progreso hice en trabajo que importa**, qué avancé, qué sigue y si releí mi documento de sentido. Queda un historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior).
 
@@ -17,7 +17,7 @@ El menú hamburguesa contiene:
 - **Datos**: exportar e importar toda mi información como archivo JSON, y copiar un prompt para personalizar con IA.
 - **Acerca**: el propósito de la app y su base científica (lista de estudios con enlaces al paper y a una explicación amigable).
 
-También hay un overlay "¿Desenfocado?" que muestra a pantalla completa la visión, los propósitos de cada área y los bloques de hoy como recordatorio de que la decisión ya está tomada.
+También hay un botón "¿Desenfocado?" en el header que abre un overlay a pantalla completa. Su mensaje principal es una intención de implementación "fría": **"cuando surja la distracción, la ignoro y vuelvo al bloque"** (no moviliza esfuerzo: con motivación alta, "esfuérzate más" genera sobremotivación y empeora el desempeño; ignorar la distracción es lo efectivo). Debajo muestra la visión, los propósitos de cada área y los bloques de hoy como recordatorio de que la decisión ya está tomada.
 
 ## Personalizar mi sistema con una IA (uso principal)
 
@@ -57,7 +57,7 @@ Actualmente la app usa **una sola clave**:
 
 #### `sistema-personal-v1`
 
-Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 2):
+Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 3):
 
 ```json
 {
@@ -75,7 +75,9 @@ Guarda todo el estado de la app como un único objeto JSON (string). Esquema (sc
       "id": "string único",
       "dia": 0,
       "hora": "HH:MM (24h)",
-      "area": "string",
+      "lugar": "string libre (dónde) — opcional, puede ser ''",
+      "conducta": "string — la conducta concreta y exacta a ejecutar (qué/cómo)",
+      "area": "string — debe coincidir con el nombre de un área de sentido (propósito activo)",
       "dur": "string libre, ej. '60 min'"
     }
   ],
@@ -99,6 +101,9 @@ Notas de campos:
 
 - `config.durBloque`: preferencia (string libre) usada como duración por defecto al crear un bloque nuevo. Es una convención práctica editable, no una duración prescrita.
 - `dia`: número **0–6 según `Date.getDay()`**, es decir `0 = domingo`, `1 = lunes`, … `6 = sábado`. En la vista la semana se muestra empezando en lunes.
+- `conducta`: la conducta concreta que se ejecutará (qué/cómo exacto), no un área vaga. Es el corazón de la intención de implementación: el efecto viene de vincular una situación con una respuesta específica. En backups v1/v2 (que no lo tenían) la migración lo rellena como `""`.
+- `lugar`: dónde ocurre el bloque (opcional). Completa el "cuándo/dónde" de la situación. La migración lo rellena como `""`.
+- `area`: debe corresponder al `nombre` de un área de `sentido` (el propósito activo al que sirve el bloque). Si no coincide con ningún área viva, la UI marca el bloque como **huérfano** (meta débil o abandonada) para relinkarlo o eliminarlo. No conviertas ideas en bloques sin este vínculo.
 - `id`: cadena corta única dentro de su array (la app las genera con base36 aleatorio). Sirve como identidad para editar, borrar y para la fusión al importar.
 - `hora`: formato de 24 horas `HH:MM`.
 - `progreso`: campo de la revisión para registrar el progreso hecho en trabajo significativo esa semana. En backups v1 (que no lo tenían) la migración lo rellena como `""`.
@@ -118,9 +123,9 @@ Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
     ]
   },
   "bloques": [
-    { "id": "b1", "dia": 1, "hora": "07:00", "area": "Estudio", "dur": "60 min" },
-    { "id": "b2", "dia": 1, "hora": "19:00", "area": "Proyectos", "dur": "90 min" },
-    { "id": "b3", "dia": 0, "hora": "10:00", "area": "Ideación", "dur": "45 min" }
+    { "id": "b1", "dia": 1, "hora": "07:00", "lugar": "Escritorio", "conducta": "Leer 20 páginas y anotar 3 ideas", "area": "Estudio", "dur": "60 min" },
+    { "id": "b2", "dia": 1, "hora": "19:00", "lugar": "", "conducta": "Escribir la siguiente función y hacer commit", "area": "Proyectos", "dur": "90 min" },
+    { "id": "b3", "dia": 0, "hora": "10:00", "lugar": "", "conducta": "Escribir 5 ideas nuevas para proyectos", "area": "Ideación", "dur": "45 min" }
   ],
   "ideas": [
     { "id": "i1", "texto": "Prototipo de app para registrar hábitos por bloques.", "fecha": "2025-02-16" }
@@ -138,7 +143,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 ```json
 {
   "app": "sistema-personal",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "exportedAt": "2025-02-16T14:30:00.000Z",
   "data": {
     "sistema-personal-v1": { "...": "el objeto descrito arriba, ya parseado como JSON, no como string" }
@@ -149,7 +154,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 Campo por campo:
 
 - `app`: constante `"sistema-personal"`. El import **rechaza** cualquier archivo cuyo `app` no sea exactamente este.
-- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `2`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
+- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `3`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
 - `exportedAt`: fecha/hora ISO 8601 del momento del export.
 - `data`: objeto cuyas claves son **claves de localStorage** (por ahora solo `sistema-personal-v1`) y cuyos valores son el contenido **ya parseado como objeto JSON** (no strings escapados).
 
@@ -163,10 +168,11 @@ Comportamiento del **Import**:
 
 ### Instrucciones directas para el LLM
 
-- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**2**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config` y `progreso` en cada revisión). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
+- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**3**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config`, `progreso` en cada revisión, y en cada bloque `conducta` —conducta concreta— y `lugar`). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`, y vincula el `area` de cada bloque al `nombre` de un área de `sentido`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
 - **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha) y `revisiones` (bitácora semanal con `progreso`). Interpreta cada sección según su propósito descrito arriba.
 
 ### Historial de schemaVersion
 
 - **v1**: primer esquema (`sentido`, `bloques`, `ideas`, `revisiones`).
-- **v2** (actual): se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`): rellena `config` con la duración por defecto y `progreso: ""` en revisiones que no lo tuvieran, sin tocar el resto de los datos.
+- **v2**: se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`): rellena `config` con la duración por defecto y `progreso: ""` en revisiones que no lo tuvieran, sin tocar el resto de los datos.
+- **v3** (actual): cada bloque suma `conducta` (la conducta concreta y exacta a ejecutar) y `lugar` (dónde). El efecto de las intenciones de implementación depende de vincular una situación exacta con una respuesta específica, no solo un día + área. Migración v2→v3 (`MIGRATIONS[2]`): rellena `conducta: ""` y `lugar: ""` en bloques que no los tuvieran, sin tocar el resto.

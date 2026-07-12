@@ -1,6 +1,6 @@
 # Sistema Personal — PWA
 
-App instalable en tu celular: documento de sentido, bloques semanales, captura de ideas, revisión semanal y el botón **"¿Desenfocado?"**. Funciona offline y guarda tus datos en el dispositivo (localStorage).
+App instalable en tu celular: documento de sentido, bloques semanales (cada uno con una conducta concreta y un propósito activo al que sirve), captura de ideas, revisión semanal y el botón **"¿Desenfocado?"** (que ante la distracción recuerda ignorarla y volver al bloque, no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
 
 ## Archivos
 - `index.html` — la app completa (Tailwind con tema custom blanco/negro + jQuery, vía CDN, sin build)
