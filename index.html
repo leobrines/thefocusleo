@@ -185,6 +185,22 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- Hoja: editar un bloque. Un solo bloque llena la pantalla; el resto de la semana no compite
+     por la atención (mismo principio que el temporizador de foco). Decidir de a uno baja la
+     carga cognitiva y la parálisis de "¿por dónde empiezo?". -->
+<div id="bloque" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Editar bloque" aria-modal="true">
+  <div id="bloque-backdrop" class="absolute inset-0 bg-negro/80 backdrop-blur-sm"></div>
+  <div class="absolute inset-x-0 bottom-0 sm:inset-x-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 bg-negro border-t sm:border border-linea rounded-t-2xl sm:rounded-2xl overflow-y-auto max-h-[92vh] sm:max-w-lg sm:mx-auto">
+    <div class="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div class="flex justify-between items-center mb-4">
+        <p id="bloque-dia" class="font-mono text-[11px] tracking-widest text-gris"></p>
+        <button id="bloque-cerrar" class="btn !px-2.5" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="bloque-body"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 const KEY = "sistema-personal-v1";
@@ -552,47 +568,96 @@ function opcionesArea(sel){
   return primera + huerfana + opts;
 }
 
+// SEMANA: vista de resumen, no de edición. Cada día muestra sus bloques como filas escaneables
+// de una sola línea (hora → conducta · propósito). Editar un bloque abre un modal enfocado
+// (viewBloqueModal): así el resumen queda calmado y sin muros de campos, y cada decisión se
+// toma de a una. Divulgación progresiva: los detalles aparecen justo cuando vas a decidirlos.
 function viewSemana(){
   const hoy = new Date().getDay();
   const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
   let h = `
   <div class="card !bg-negro">
     <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HARÉ [CONDUCTA CONCRETA]</p>
-    <p class="text-gris text-sm leading-relaxed">Vincular una situación exacta (cuándo y dónde) con una conducta concreta es lo que dispara la acción sola. Un día + un área es solo una meta vaga con horario: escribe la conducta exacta que harás. La decisión ya está tomada aquí; a la hora no la negocias ni la dejas “para cuando puedas”, solo la ejecutas.</p>
-    <p class="text-gris text-sm leading-relaxed mt-2">Reserva los bloques para lo que te cuesta iniciar. Lo que ya arrancas sin fricción se completa igual con o sin plan: bloquearlo solo añade peso. Cada bloque debe apuntar a un propósito activo de Sentido, y a uno que de verdad te importe: si la meta de fondo te da igual, ningún plan colgado de ella va a moverte.</p>
+    <p class="text-gris text-sm leading-relaxed">Vincular una situación exacta (cuándo y dónde) con una conducta concreta es lo que dispara la acción sola. Toca un bloque para decidirlo con calma, de a uno; la decisión se toma ahí. A la hora no la negocias ni la dejas “para cuando puedas”: solo la ejecutas.</p>
   </div>`;
   $.each(ORDEN, function(_, d){
     const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
     h += `
     <div class="card ${hoy===d ? "!border-blanco" : ""}">
-      <p class="label ${hoy===d ? "!text-blanco" : ""}">${DIAS[d].toUpperCase()}${hoy===d ? " · HOY" : ""}</p>
-      ${bloques.length===0 ? `<p class="text-tenue text-sm">Sin bloques — día libre o de descanso.</p>` : ""}`;
+      <p class="label !mb-3 ${hoy===d ? "!text-blanco" : ""}">${DIAS[d].toUpperCase()}${hoy===d ? " · HOY" : ""}</p>
+      ${bloques.length===0 ? `<p class="text-tenue text-sm mb-3">Sin bloques — día libre o de descanso.</p>` : ""}`;
     $.each(bloques, function(_, b){
       const huerfano = b.area && !areasVivas.has(b.area);
+      const conducta = (b.conducta && b.conducta.trim()) ? esc(b.conducta) : "";
+      const meta = huerfano
+        ? `⚠ ${esc(b.area)} · sin propósito activo`
+        : (b.area ? esc(b.area) : "sin vincular a un propósito");
+      const metaDur = b.dur ? ` · ${esc(b.dur)}` : "";
       h += `
-      <div class="border ${huerfano ? "border-dashed border-gris" : "border-linea"} rounded-lg p-3 mb-2 space-y-2">
-        <div class="flex gap-2 items-center flex-wrap">
-          <span class="font-mono text-[11px] text-gris">SI</span>
-          <input type="time" class="input !w-[104px]" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
-          <input class="input flex-1 !w-auto min-w-[100px]" placeholder="¿dónde? (opcional)" value="${esc(b.lugar||"")}" data-bloque="${b.id}" data-f="lugar">
-          <button class="btn !px-2.5 del-bloque" data-id="${b.id}">✕</button>
-        </div>
-        <div class="flex gap-2 items-start">
-          <span class="font-mono text-[11px] text-gris pt-2.5">→</span>
-          <input class="input flex-1" placeholder="conducta concreta: qué harás exactamente" value="${esc(b.conducta||"")}" data-bloque="${b.id}" data-f="conducta">
-        </div>
-        <div class="flex gap-2 items-center flex-wrap">
-          <span class="font-mono text-[11px] text-gris">sirve a</span>
-          <select class="input flex-1 !w-auto min-w-[140px]" data-bloque="${b.id}" data-f="area">${opcionesArea(b.area)}</select>
-          <input class="input !w-[86px]" placeholder="dur" value="${esc(b.dur)}" data-bloque="${b.id}" data-f="dur">
-        </div>
-        ${huerfano ? `<p class="text-gris text-[11px] font-mono leading-relaxed">⚠ Sin propósito activo en Sentido. Vincúlalo a un área o elimínalo: sin meta viva detrás, el plan deja de sostener la acción.</p>` : ""}
-      </div>`;
+      <button type="button" class="edit-bloque w-full text-left border ${huerfano ? "border-dashed border-gris" : "border-linea"} rounded-lg p-3 mb-2 flex items-center gap-3 hover:border-blanco focus:outline-none focus:border-blanco focus:ring-1 focus:ring-blanco" data-id="${b.id}">
+        <span class="font-mono text-sm text-blanco tabular-nums shrink-0">${esc(b.hora)}</span>
+        <span class="flex-1 min-w-0">
+          <span class="block text-sm truncate ${conducta ? "" : "text-tenue"}">${conducta || "Sin definir — toca para completar"}</span>
+          <span class="block font-mono text-[11px] ${huerfano ? "text-gris" : "text-tenue"} truncate mt-0.5">${meta}${metaDur}</span>
+        </span>
+        <span class="text-tenue text-lg leading-none shrink-0" aria-hidden="true">›</span>
+      </button>`;
     });
-    h += `<button class="btn !text-[11px] add-bloque" data-dia="${d}">+ Bloque</button></div>`;
+    h += `<button class="btn !text-[11px] add-bloque w-full !py-2.5" data-dia="${d}">+ Bloque</button></div>`;
   });
   h += `<p class="text-gris text-sm">Un solo foco por bloque: cuando estás en un bloque, lo demás no existe. Cambiar entre tareas cuesta tiempo y errores, sobre todo en lo complejo.</p>`;
   return h;
+}
+
+// Contenido del modal de edición de un bloque: la frase de intención de implementación rellenada
+// de arriba abajo (cuándo · dónde · qué · para qué · cuánto), una guía por campo y solo lo justo
+// visible. Los mismos data-bloque/data-f que antes, así la lógica de guardado se reutiliza.
+function renderBloqueModal(id){
+  const b = data.bloques.find(x => x.id === id);
+  if(!b) return;
+  const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
+  const huerfano = b.area && !areasVivas.has(b.area);
+  const diaU = DIAS[b.dia].toUpperCase();
+  $("#bloque-dia").text(`${diaU} · BLOQUE`);
+  $("#bloque-body").html(`
+    <p class="text-blanco text-lg font-semibold leading-snug">Una decisión, un bloque</p>
+    <p class="text-gris text-sm leading-relaxed mt-1 mb-6">Rellena la frase de arriba abajo. Reserva los bloques para lo que te cuesta iniciar: con empezar por uno basta.</p>
+
+    <label class="label !mb-1.5 block">SI ES ${diaU} A LAS</label>
+    <input type="time" class="input !text-lg !w-[150px] tabular-nums" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
+
+    <label class="label !mb-1.5 mt-5 block">EN (DÓNDE · OPCIONAL)</label>
+    <input class="input" placeholder="¿dónde estarás? p. ej. el escritorio, la biblioteca" value="${esc(b.lugar||"")}" data-bloque="${b.id}" data-f="lugar">
+
+    <label class="label !mb-1.5 mt-5 block">→ HARÉ (CONDUCTA CONCRETA)</label>
+    <textarea class="input !text-base leading-relaxed" rows="2" placeholder="qué harás exactamente" data-bloque="${b.id}" data-f="conducta">${esc(b.conducta||"")}</textarea>
+    <p class="text-tenue text-[11px] leading-relaxed mt-1.5">Una conducta exacta, no una meta vaga: “escribir 200 palabras del capítulo 3”, no “avanzar la tesis”.</p>
+
+    <label class="label !mb-1.5 mt-5 block">SIRVE A (UN PROPÓSITO DE SENTIDO)</label>
+    <select class="input" data-bloque="${b.id}" data-f="area">${opcionesArea(b.area)}</select>
+    ${huerfano
+      ? `<p class="text-gris text-[11px] font-mono leading-relaxed mt-1.5">⚠ Sin propósito activo en Sentido. Vincúlalo a un área o elimínalo: sin meta viva detrás, el plan deja de sostener la acción.</p>`
+      : `<p class="text-tenue text-[11px] leading-relaxed mt-1.5">Cada bloque cuelga de un porqué que de verdad te importe; si la meta te da igual, el plan no va a moverte.</p>`}
+
+    <label class="label !mb-1.5 mt-5 block">DURA</label>
+    <input class="input !w-[130px]" placeholder="ej. 60 min" value="${esc(b.dur||"")}" data-bloque="${b.id}" data-f="dur">
+
+    <div class="flex gap-2 mt-8 justify-between items-center">
+      <button type="button" class="btn del-bloque-modal" data-id="${b.id}">Eliminar</button>
+      <button type="button" id="bloque-listo" class="btn btn-primary !px-7 !py-3">Listo</button>
+    </div>`);
+}
+function abrirBloque(id, enfocar){
+  if(!data.bloques.find(x => x.id === id)) return;
+  renderBloqueModal(id);
+  $("#bloque").removeClass("hidden");
+  if(enfocar){
+    setTimeout(function(){ $("#bloque-body").find("[data-f='conducta']").trigger("focus"); }, 60);
+  }
+}
+function cerrarBloque(){
+  $("#bloque").addClass("hidden");
+  render(); // refresca las filas-resumen de la semana con lo editado
 }
 
 // Bandeja de ideas capturadas (la captura en sí vive en el botón flotante +, disponible siempre).
@@ -1197,7 +1262,8 @@ $(function(){
        && $("#foco").hasClass("hidden")
        && $("#ancla").hasClass("hidden")
        && $("#menu").hasClass("hidden")
-       && $("#capturar").hasClass("hidden")){
+       && $("#capturar").hasClass("hidden")
+       && $("#bloque").hasClass("hidden")){
       render();
     }
   }, 60000);
@@ -1217,24 +1283,37 @@ $(function(){
     save(); render();
   });
 
-  // Semana
-  // "change" además de "input" para que el <select> de área (vínculo con Sentido) guarde y
-  // re-renderice el estado huérfano al instante.
-  $m.on("input", "[data-bloque]:not(select)", function(){
+  // Semana: el resumen solo navega. Editar un bloque abre el modal enfocado; crear uno lo abre
+  // ya, con la conducta enfocada, para ir directo a decidir (sin "creé un bloque vacío, ¿ahora
+  // dónde están sus campos?").
+  $m.on("click", ".edit-bloque", function(){ abrirBloque($(this).data("id")); });
+  $m.on("click", ".add-bloque", function(){
+    const id = uid();
+    data.bloques.push({id, dia:$(this).data("dia"), hora:"19:00", lugar:"", conducta:"", area:"", dur:data.config.durBloque || DUR_DEFECTO});
+    save(); render(); abrirBloque(id, true);
+  });
+
+  // Modal de bloque (fuera de #main → handlers propios). Guarda en vivo con los mismos
+  // data-bloque/data-f. El <select> re-renderiza el modal para reflejar el estado huérfano al
+  // instante. Eliminar vive aquí, tras un toque explícito, no en el resumen (evita borrados por
+  // toque accidental).
+  const $bm = $("#bloque-body");
+  $bm.on("input", "[data-bloque]:not(select)", function(){
     const b = data.bloques.find(x => x.id === $(this).data("bloque"));
     if(b){ b[$(this).data("f")] = this.value; save(); }
   });
-  $m.on("change", "select[data-bloque]", function(){
+  $bm.on("change", "select[data-bloque]", function(){
     const b = data.bloques.find(x => x.id === $(this).data("bloque"));
-    if(b){ b[$(this).data("f")] = this.value; save(); render(); }
+    if(b){ b[$(this).data("f")] = this.value; save(); renderBloqueModal(b.id); }
   });
-  $m.on("click", ".del-bloque", function(){
+  $bm.on("click", ".del-bloque-modal", function(){
     data.bloques = data.bloques.filter(x => x.id !== $(this).data("id"));
-    save(); render();
+    save(); cerrarBloque();
   });
-  $m.on("click", ".add-bloque", function(){
-    data.bloques.push({id:uid(), dia:$(this).data("dia"), hora:"19:00", lugar:"", conducta:"", area:"", dur:data.config.durBloque || DUR_DEFECTO});
-    save(); render();
+  $bm.on("click", "#bloque-listo", cerrarBloque);
+  $("#bloque-cerrar, #bloque-backdrop").on("click", cerrarBloque);
+  $(document).on("keydown", function(e){
+    if(e.key === "Escape" && !$("#bloque").hasClass("hidden")) cerrarBloque();
   });
 
   // Ideas (la captura se hace desde el botón flotante +; aquí solo se eliminan de la bandeja)
