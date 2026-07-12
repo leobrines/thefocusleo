@@ -82,6 +82,25 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- Overlay temporizador de foco (una cosa a la vez · tiempo visible) -->
+<div id="foco" class="hidden fixed inset-0 bg-negro z-50 overflow-y-auto px-5 py-12" role="dialog" aria-label="Bloque en foco">
+  <div class="max-w-2xl mx-auto">
+    <p class="font-mono text-xs tracking-[0.15em] text-gris border-b border-linea pb-3">UN SOLO FOCO · LO DEMÁS NO EXISTE</p>
+    <p id="foco-conducta" class="text-2xl leading-snug mt-6 font-semibold"></p>
+    <p id="foco-area" class="text-gris text-sm mt-2 font-mono"></p>
+    <div class="mt-10 text-center">
+      <p id="foco-reloj" class="font-mono text-6xl sm:text-7xl font-bold tabular-nums tracking-tight" aria-live="off">00:00</p>
+      <p id="foco-estado" class="font-mono text-[11px] tracking-widest text-gris mt-3"></p>
+    </div>
+    <div class="mt-10 flex gap-2 flex-wrap justify-center">
+      <button id="foco-hecho" class="btn btn-primary !px-6 !py-3">Terminé ✓</button>
+      <button id="foco-pausa" class="btn !px-5 !py-3">Pausar</button>
+      <button id="foco-salir" class="btn !px-5 !py-3">Salir</button>
+    </div>
+    <p class="text-tenue text-[11px] font-mono mt-8 text-center leading-relaxed">Si surge una distracción, la ignoras y vuelves aquí. No la negocies: ya decidiste este bloque.</p>
+  </div>
+</div>
+
 <!-- Drawer menú (config · datos · acerca) -->
 <div id="menu" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Menú">
   <div id="menu-backdrop" class="absolute inset-0 bg-negro/80 backdrop-blur-sm"></div>
@@ -125,9 +144,9 @@ tailwind.config = {
 const KEY = "sistema-personal-v1";
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const ORDEN = [1,2,3,4,5,6,0];
-const TABS = [["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
+const TABS = [["hoy","HOY"],["sentido","SENTIDO"],["semana","SEMANA"],["ideas","IDEAS"],["revision","REVISIÓN"]];
 const MENU_TABS = [["config","CONFIGURACIÓN"],["datos","DATOS"],["acerca","ACERCA"]];
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const APP_ID = "sistema-personal";
 const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
 const DUR_DEFECTO = "60 min"; // duración por defecto de un bloque nuevo (preferencia, no ciencia)
@@ -151,7 +170,8 @@ const DEFAULT_DATA = {
     {id:"b5", dia:0, hora:"10:00", lugar:"", conducta:"Escribir 5 ideas nuevas para proyectos", area:"Ideación", dur:"45 min"}
   ],
   ideas:[],
-  revisiones:[]
+  revisiones:[],
+  hechos:[]
 };
 
 // Rellena campos nuevos que un guardado antiguo pueda no tener (config, progreso en revisiones).
@@ -172,6 +192,9 @@ function normalizar(d){
   if(!Array.isArray(d.ideas)) d.ideas = [];
   if(!Array.isArray(d.revisiones)) d.revisiones = [];
   d.revisiones.forEach(function(r){ if(r && typeof r.progreso !== "string") r.progreso = ""; });
+  // hechos: registro de qué bloque se marcó como hecho en qué fecha (recompensa inmediata).
+  if(!Array.isArray(d.hechos)) d.hechos = [];
+  d.hechos = d.hechos.filter(function(h){ return h && typeof h === "object" && h.bloqueId && h.fecha; });
   return d;
 }
 
@@ -189,11 +212,135 @@ function save(){
 const uid = () => Math.random().toString(36).slice(2,9);
 const esc = s => $("<i>").text(s ?? "").html().replace(/"/g,"&quot;");
 const hoyISO = () => new Date().toISOString().slice(0,10);
+// Fecha ISO de hace N días (para contar los "hechos" de la última semana en la Revisión).
+const isoHaceDias = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0,10); };
 
-let tab = "semana";
+// Extrae los minutos de una duración libre ("60 min", "90", "1h 30"). Si no hay número usable,
+// cae en la duración por defecto de config, y como último recurso 25 min (foco corto sensato).
+function parseMin(s){
+  const m = String(s || "").match(/\d+/);
+  if(m){ const n = parseInt(m[0], 10); if(n > 0) return n; }
+  const c = String(data.config.durBloque || "").match(/\d+/);
+  return (c && parseInt(c[0], 10) > 0) ? parseInt(c[0], 10) : 25;
+}
+// Minutos desde medianoche de una hora "HH:MM".
+function horaAMin(hora){
+  const p = String(hora || "").split(":");
+  return (parseInt(p[0],10) || 0) * 60 + (parseInt(p[1],10) || 0);
+}
+// ¿Este bloque quedó marcado como hecho en esta fecha? (recompensa inmediata, no diferida)
+function estaHecho(bloqueId, fecha){
+  return data.hechos.some(h => h.bloqueId === bloqueId && h.fecha === fecha);
+}
+function marcarHecho(bloqueId, fecha){
+  if(estaHecho(bloqueId, fecha)) return;
+  data.hechos.push({ id: uid(), bloqueId, fecha });
+  save();
+}
+function desmarcarHecho(bloqueId, fecha){
+  data.hechos = data.hechos.filter(h => !(h.bloqueId === bloqueId && h.fecha === fecha));
+  save();
+}
+
+let tab = "hoy";
 let menuTab = "config";
 
 /* ---------- Vistas ---------- */
+// HOY: superficie de ejecución (no de edición). Vista del día por defecto contra la ceguera al
+// tiempo; marca "Ahora" y "Sigue", hace visible cuánto falta, y permite Empezar (temporizador de
+// foco) y marcar Hecho con feedback inmediato. Editar/planificar bloques sigue en SEMANA.
+function viewHoy(){
+  const now = new Date();
+  const hoy = now.getDay();
+  const fecha = hoyISO();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
+  const propositoDe = {};
+  data.sentido.areas.forEach(a => { if(a.nombre) propositoDe[a.nombre] = a.proposito; });
+  const bloques = data.bloques.filter(b => b.dia === hoy).sort((a,b) => a.hora.localeCompare(b.hora));
+
+  // Clasifica: bloque "ahora" (en curso y no hecho) y "sigue" (el próximo futuro).
+  let ahoraId = null, sigueId = null, minutosParaSigue = null;
+  bloques.forEach(function(b){
+    const start = horaAMin(b.hora);
+    const end = start + parseMin(b.dur);
+    if(nowMin >= start && nowMin < end && !estaHecho(b.id, fecha) && ahoraId === null) ahoraId = b.id;
+    if(start > nowMin && sigueId === null){ sigueId = b.id; minutosParaSigue = start - nowMin; }
+  });
+
+  const hechosHoy = bloques.filter(b => estaHecho(b.id, fecha)).length;
+  const relojHM = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+  // Cabecera: qué está pasando ahora mismo, en una sola frase.
+  let cabecera;
+  if(bloques.length === 0){
+    cabecera = `
+      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
+      <p class="text-gris text-sm leading-relaxed">Hoy no tienes bloques. Descansa o improvisa: la decisión de qué es importante ya vive en tu Semana; no la reinventes ahora.</p>`;
+  } else if(ahoraId){
+    const b = bloques.find(x => x.id === ahoraId);
+    const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
+    cabecera = `
+      <p class="label !text-blanco">AHORA · ${relojHM}</p>
+      <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
+      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>
+      <button class="btn btn-primary mt-3 hoy-empezar" data-id="${b.id}">▶ Empezar en foco</button>`;
+  } else if(sigueId){
+    const b = bloques.find(x => x.id === sigueId);
+    const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
+    const falta = minutosParaSigue < 60 ? `${minutosParaSigue} min` : `${Math.floor(minutosParaSigue/60)} h ${minutosParaSigue%60} min`;
+    cabecera = `
+      <p class="label !text-blanco">SIGUE · EN ${esc(falta.toUpperCase())} · ${relojHM}</p>
+      <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
+      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>`;
+  } else {
+    cabecera = `
+      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
+      <p class="text-gris text-sm leading-relaxed">Por hoy ya está: no quedan bloques por delante. Lo que hiciste, cuenta. No sumes más ahora.</p>`;
+  }
+
+  let h = `<div class="card !bg-negro border-blanco">${cabecera}</div>`;
+
+  if(hechosHoy > 0){
+    h += `<p class="font-mono text-[11px] tracking-widest text-blanco">✓ ${hechosHoy} ${hechosHoy === 1 ? "BLOQUE HECHO" : "BLOQUES HECHOS"} HOY · ESO CUENTA</p>`;
+  }
+
+  // Lista de bloques de hoy, en orden. Los hechos se apagan; el "ahora" se resalta.
+  bloques.forEach(function(b){
+    const hecho = estaHecho(b.id, fecha);
+    const esAhora = b.id === ahoraId;
+    const huerfano = b.area && !areasVivas.has(b.area);
+    const que = (b.conducta && b.conducta.trim()) ? b.conducta : `<span class="text-tenue italic">Sin conducta concreta — defínela en Semana</span>`;
+    if(hecho){
+      h += `
+      <div class="card flex gap-3 items-start opacity-60">
+        <span class="text-blanco text-lg leading-none pt-0.5" aria-hidden="true">✓</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-[11px] text-gris">${esc(b.hora)} · HECHO</p>
+          <p class="mt-1 leading-snug line-through decoration-tenue">${que}</p>
+        </div>
+        <button class="btn !px-2.5 !text-[11px] hoy-deshacer" data-id="${b.id}">Deshacer</button>
+      </div>`;
+    } else {
+      h += `
+      <div class="card ${esAhora ? "!border-blanco" : ""}">
+        <div class="flex items-baseline justify-between gap-2">
+          <p class="label ${esAhora ? "!text-blanco" : ""} !mb-0">${esc(b.hora)}${esAhora ? " · AHORA" : ""}${b.dur ? " · " + esc(b.dur) : ""}</p>
+        </div>
+        <p class="mt-2 leading-snug font-medium">${que}</p>
+        <p class="text-gris text-[11px] font-mono mt-1">${huerfano ? "⚠ " + esc(b.area) + " (sin propósito activo)" : (b.area ? "sirve a: " + esc(b.area) : "sin propósito vinculado")}</p>
+        <div class="flex gap-2 mt-3 flex-wrap">
+          <button class="btn hoy-empezar" data-id="${b.id}">▶ Empezar</button>
+          <button class="btn hoy-hecho" data-id="${b.id}">✓ Hecho</button>
+        </div>
+      </div>`;
+    }
+  });
+
+  h += `<p class="text-gris text-sm leading-relaxed">Un solo foco por bloque: cuando estás en uno, lo demás no existe. Marcar “hecho” al terminar te da la señal de avance en el momento, no dentro de una semana.</p>`;
+  return h;
+}
+
 function viewSentido(){
   let h = `
   <div class="card">
@@ -294,7 +441,14 @@ function viewIdeas(){
 }
 
 function viewRevision(){
+  const desde7 = isoHaceDias(6);
+  const nHechos = data.hechos.filter(h => h.fecha >= desde7 && h.fecha <= hoyISO()).length;
   let h = `
+  ${nHechos > 0 ? `<div class="card !bg-negro border-blanco">
+    <p class="label !text-blanco">ÚLTIMOS 7 DÍAS</p>
+    <p class="text-2xl font-semibold">✓ ${nHechos} ${nHechos === 1 ? "bloque hecho" : "bloques hechos"}</p>
+    <p class="text-gris text-sm mt-1 leading-relaxed">No es una meta ni una racha: es lo que ya avanzaste. Percibir el propio progreso es el mayor motor de motivación.</p>
+  </div>` : ""}
   <div class="card">
     <p class="label !text-blanco">REVISIÓN SEMANAL</p>
     <p class="text-sm mb-1.5">¿Qué progreso hiciste esta semana en trabajo que importa?</p>
@@ -347,6 +501,14 @@ function viewMenuAcerca(){
       [["Estudio: Rubinstein, Meyer & Evans (2001)", "https://psycnet.apa.org/doi/10.1037/0096-1523.27.4.763"],
        ["Explicación (EN) · APA", "https://www.apa.org/topics/research/multitasking"],
        ["Explicación (ES) · El Tiempo / NYT", "https://www.eltiempo.com/mundo/new-york-times-international-weekly/hacer-multiples-tareas-a-la-vez-tiene-un-impacto-negativo-en-nuestro-cerebro-expertos-responden-3329867"]]],
+    ["Recompensa inmediata al completar (aversión a la demora)",
+      "En el TDAH el circuito de recompensa responde menos a las recompensas y hay aversión a la demora: el valor de una recompensa lejana se descuenta mucho más rápido. Por eso marcar un bloque como “hecho” y ver el progreso en el momento —no dentro de una semana— es lo que sostiene la acción. La revisión semanal sigue, pero el avance se percibe ya.",
+      [["Estudio: Van Dessel et al. (2018) · JCPP", "https://acamh.onlinelibrary.wiley.com/doi/10.1111/jcpp.12868"],
+       ["Estudio: aversión a la demora (fenotipo ampliado)", "https://www.sciencedirect.com/science/article/abs/pii/S0028393208003837"]]],
+    ["Hacer el tiempo visible (ceguera al tiempo)",
+      "El TDAH altera la percepción del tiempo. Externalizar el tiempo —una vista de “hoy” con lo que va ahora y lo que sigue, cuánto falta y una cuenta atrás al empezar— descarga la memoria de trabajo y da la señal externa que dispara la transición. Las ayudas de memoria externas y las señales visibles son soporte de primera línea recomendado para el TDAH.",
+      [["Guía clínica: NICE NG87 (TDAH) · ayudas externas", "https://www.nice.org.uk/guidance/ng87"],
+       ["Revisión: memoria de trabajo en TDAH", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8334010/"]]],
     ["Práctica corta y frecuente",
       "El estudio espaciado supera a los maratones; uno de los hallazgos más replicados de la psicología (317 experimentos, evidencia desde 1885).",
       [["Estudio: Cepeda et al. (2006)", "https://pubmed.ncbi.nlm.nih.gov/16719566/"],
@@ -398,6 +560,7 @@ function viewMenuAcerca(){
   <div class="card !bg-negro border-blanco">
     <p class="label !text-blanco">PROPÓSITO</p>
     <p class="leading-relaxed">thefocusleo no es una app de productividad. No busca que hagas más: busca que estés enfocado, que lo que hagas tenga sentido para ti y que dediques tu energía a lo de mayor impacto. Menos, pero mejor. Cada funcionalidad existe solo si la ciencia la respalda.</p>
+    <p class="leading-relaxed mt-3">Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH): una cosa a la vez, el tiempo hecho visible (la pestaña <span class="text-blanco">Hoy</span> con lo que va ahora y lo que sigue, y una cuenta atrás al empezar), recompensa inmediata al marcar un bloque como hecho, y cero mecánicas de culpa o rachas: fallar un día no rompe nada.</p>
   </div>
   <p class="label !text-blanco mt-1">BASE CIENTÍFICA</p>
   ${lista}
@@ -439,12 +602,20 @@ function viewMenuDatos(){
 // v2→v3: cada bloque suma `conducta` (la conducta concreta: qué/cómo exacto) y `lugar` (dónde).
 // El efecto de las intenciones de implementación viene de vincular una situación exacta con una
 // respuesta específica, no de un simple día+área. `normalizar` rellena ambos como "".
+// v3→v4: se añade `hechos` (array de {id, bloqueId, fecha}): registro de cada vez que un bloque se
+// marcó como hecho en una fecha concreta. Da recompensa inmediata al completar (el circuito de
+// recompensa en TDAH está hipoactivado y hay aversión a la demora), en vez de esperar a la
+// revisión semanal. `normalizar` lo rellena como [].
 const MIGRATIONS = {
   1: function(store){
     if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
     return store;
   },
   2: function(store){
+    if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
+    return store;
+  },
+  3: function(store){
     if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
     return store;
   }
@@ -686,7 +857,7 @@ function renderTabs(){
   });
 }
 function render(){
-  const views = { sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
+  const views = { hoy: viewHoy, sentido: viewSentido, semana: viewSemana, ideas: viewIdeas, revision: viewRevision };
   $("#main").html(views[tab]());
 }
 
@@ -701,6 +872,48 @@ function renderMenu(){
   $("#menu-body").html(views[menuTab]());
 }
 
+/* ---------- Temporizador de foco ---------- */
+// Hace el tiempo concreto (cuenta atrás) y baja la fricción de inicio: un botón "Empezar" abre un
+// solo bloque a pantalla completa. No es una duración prescrita, solo la del bloque; se puede
+// pausar y no obliga a nada al llegar a cero.
+let foco = { id: null, restante: 0, corriendo: false, tick: null };
+
+function fmtMMSS(seg){
+  seg = Math.max(0, Math.round(seg));
+  return `${String(Math.floor(seg/60)).padStart(2,"0")}:${String(seg%60).padStart(2,"0")}`;
+}
+function pintarFoco(){
+  $("#foco-reloj").text(fmtMMSS(foco.restante));
+  $("#foco-pausa").text(foco.corriendo ? "Pausar" : "Reanudar");
+  if(foco.restante <= 0) $("#foco-estado").text("TIEMPO CUMPLIDO · SIGUE SI QUIERES O CIÉRRALO");
+  else $("#foco-estado").text(foco.corriendo ? "EN FOCO" : "EN PAUSA");
+}
+function tickFoco(){
+  if(!foco.corriendo) return;
+  foco.restante -= 1;
+  if(foco.restante <= 0){ foco.restante = 0; foco.corriendo = false; clearInterval(foco.tick); foco.tick = null; }
+  pintarFoco();
+}
+function abrirFoco(bloqueId){
+  const b = data.bloques.find(x => x.id === bloqueId);
+  if(!b) return;
+  clearInterval(foco.tick);
+  foco.id = bloqueId;
+  foco.restante = parseMin(b.dur) * 60;
+  foco.corriendo = true;
+  $("#foco-conducta").text((b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "Tu bloque"));
+  $("#foco-area").text(b.area ? "sirve a: " + b.area : "");
+  pintarFoco();
+  foco.tick = setInterval(tickFoco, 1000);
+  $("#foco").removeClass("hidden");
+}
+function cerrarFoco(){
+  clearInterval(foco.tick);
+  foco.tick = null;
+  foco.corriendo = false;
+  $("#foco").addClass("hidden");
+}
+
 /* ---------- Eventos (delegación jQuery) ---------- */
 $(function(){
   renderTabs();
@@ -712,6 +925,36 @@ $(function(){
   });
 
   const $m = $("#main");
+
+  // Hoy (ejecución): empezar en foco, marcar hecho / deshacer con feedback inmediato.
+  $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id")); });
+  $m.on("click", ".hoy-hecho", function(){ marcarHecho($(this).data("id"), hoyISO()); render(); });
+  $m.on("click", ".hoy-deshacer", function(){ desmarcarHecho($(this).data("id"), hoyISO()); render(); });
+
+  // Overlay temporizador de foco
+  $("#foco-pausa").on("click", function(){
+    if(foco.restante <= 0) return;
+    foco.corriendo = !foco.corriendo;
+    if(foco.corriendo && !foco.tick) foco.tick = setInterval(tickFoco, 1000);
+    pintarFoco();
+  });
+  $("#foco-salir").on("click", cerrarFoco);
+  $("#foco-hecho").on("click", function(){
+    if(foco.id) marcarHecho(foco.id, hoyISO());
+    cerrarFoco();
+    if(tab === "hoy") render();
+  });
+
+  // Refresco periódico de HOY para que "Ahora/Sigue" y el reloj no queden obsoletos.
+  // Solo cuando HOY está activa y sin overlays abiertos (no hay campos de texto que interrumpir).
+  setInterval(function(){
+    if(tab === "hoy"
+       && $("#foco").hasClass("hidden")
+       && $("#ancla").hasClass("hidden")
+       && $("#menu").hasClass("hidden")){
+      render();
+    }
+  }, 60000);
 
   // Sentido
   $m.on("input", "[data-bind='vision']", function(){ data.sentido.vision = this.value; save(); });

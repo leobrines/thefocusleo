@@ -1,6 +1,8 @@
 # Sistema Personal — PWA
 
-App instalable en tu celular: documento de sentido, bloques semanales (cada uno con una conducta concreta y un propósito activo al que sirve), captura de ideas, revisión semanal y el botón **"¿Desenfocado?"** (que ante la distracción recuerda ignorarla y volver al bloque, no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
+App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**. Cinco pestañas: **Hoy** (pantalla por defecto: solo los bloques de hoy, con lo que va *ahora* y lo que *sigue*, un botón **Empezar** que abre un temporizador de foco con cuenta atrás, y **Hecho** para marcar el bloque completado con feedback inmediato), **Sentido** (documento de sentido), **Semana** (bloques semanales, cada uno con una conducta concreta y un propósito activo al que sirve), **Ideas** (captura rápida) y **Revisión** (revisión semanal). Además, el botón **"¿Desenfocado?"** recuerda, ante la distracción, ignorarla y volver al bloque (no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
+
+Los principios detrás del diseño (tiempo visible contra la ceguera al tiempo, recompensa inmediata al completar, una cosa a la vez, y cero mecánicas de culpa o rachas) están respaldados por evidencia; los estudios están enlazados dentro de la app, en **Menú → Acerca**.
 
 ## Archivos
 - `index.html` — la app completa (Tailwind con tema custom blanco/negro + jQuery, vía CDN, sin build)

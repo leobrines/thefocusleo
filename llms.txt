@@ -1,15 +1,18 @@
 # Sistema Personal (thefocusleo)
 
 > App web personal cuyo propósito NO es la productividad (hacer más), sino el **enfoque** (una cosa a la vez), el **sentido** (que lo que hago conecte con mis valores) y el **impacto** (hacer lo esencial, no lo máximo) — en la línea del esencialismo. Menos, pero mejor. Cada funcionalidad existe solo si hay evidencia científica que la respalde; los textos evitan afirmaciones motivacionales que suenen a dato sin serlo. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
+>
+> Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH), aplicando principios con respaldo clínico: **hacer el tiempo visible** contra la ceguera al tiempo (la pestaña *Hoy* con lo que va ahora y lo que sigue, y un temporizador de foco con cuenta atrás al empezar un bloque), **recompensa inmediata** al marcar un bloque como hecho (el circuito de recompensa en TDAH está hipoactivado y hay aversión a la demora), **una cosa a la vez**, y **cero mecánicas de culpa o rachas** (fallar un día no rompe nada).
 
 ## Para qué la uso
 
-La app tiene cuatro pestañas principales (Sentido, Semana, Ideas, Revisión) más un **menú hamburguesa** en el header con lo secundario (Configuración, Datos, Acerca):
+La app tiene cinco pestañas principales (Hoy, Sentido, Semana, Ideas, Revisión) más un **menú hamburguesa** en el header con lo secundario (Configuración, Datos, Acerca). La pestaña por defecto al abrir es **Hoy**:
 
+- **Hoy**: la pantalla de ejecución (no de edición). Muestra solo los bloques de hoy en orden, marca cuál va **Ahora** y cuál **Sigue** (y cuánto falta), con el reloj visible, para contrarrestar la ceguera al tiempo. En cada bloque puedo pulsar **Empezar** (abre un temporizador de foco a pantalla completa con cuenta atrás, una sola conducta y nada más) o **Hecho** (lo marca como completado *en el momento*, con feedback inmediato; se puede deshacer). Editar/planificar bloques sigue viviendo en Semana; Hoy solo los ejecuta.
 - **Sentido**: escribo mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y defino "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque (aplicación de *values affirmation*).
 - **Semana**: organizo la semana en bloques por día con el formato "si es [día] a las [hora], en [lugar] → haré [conducta concreta]" (implementation intentions). Cada bloque especifica la situación exacta (cuándo/dónde) y la **conducta concreta** que ejecutaré —no basta un área vaga con horario— y se vincula a un **propósito activo de Sentido** (si el área ya no existe, el bloque se marca como huérfano para relinkarlo o borrarlo). Los bloques se reservan para lo difícil de iniciar; lo fácil se completa igual con o sin plan. La regla es: un solo foco por bloque, lo demás no existe. El día actual se resalta.
 - **Ideas**: captura rápida para sacar la idea de la cabeza y volver al bloque (protege el foco de la interrupción); ya la trabajaré en su momento.
-- **Revisión**: revisión semanal donde registro **qué progreso hice en trabajo que importa**, qué avancé, qué sigue y si releí mi documento de sentido. Queda un historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior).
+- **Revisión**: revisión semanal donde registro **qué progreso hice en trabajo que importa**, qué avancé, qué sigue y si releí mi documento de sentido. Queda un historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior). Arriba muestra, si hay, cuántos bloques marqué como **hechos en los últimos 7 días** (derivado de `hechos`), como señal de progreso —no es una meta ni una racha.
 
 El menú hamburguesa contiene:
 
@@ -57,7 +60,7 @@ Actualmente la app usa **una sola clave**:
 
 #### `sistema-personal-v1`
 
-Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 3):
+Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 4):
 
 ```json
 {
@@ -93,6 +96,9 @@ Guarda todo el estado de la app como un único objeto JSON (string). Esquema (sc
       "siguiente": "string",
       "releido": true
     }
+  ],
+  "hechos": [
+    { "id": "string único", "bloqueId": "id de un bloque", "fecha": "YYYY-MM-DD" }
   ]
 }
 ```
@@ -108,6 +114,7 @@ Notas de campos:
 - `hora`: formato de 24 horas `HH:MM`.
 - `progreso`: campo de la revisión para registrar el progreso hecho en trabajo significativo esa semana. En backups v1 (que no lo tenían) la migración lo rellena como `""`.
 - `releido`: booleano; indica si en esa revisión se releyó el documento de sentido.
+- `hechos`: registro de cada vez que un bloque se marcó como **hecho** en una **fecha** concreta (recompensa inmediata en la pestaña Hoy, en vez de esperar a la revisión semanal). Cada entrada vincula `bloqueId` (el `id` de un bloque de `bloques`) con la `fecha` (`YYYY-MM-DD`) en que se completó. Como un bloque es una plantilla semanal recurrente, un mismo `bloqueId` puede aparecer con varias fechas (una por semana). Si un bloque se borra, sus `hechos` quedan como huérfanos inertes (no rompen nada). En backups v1/v2/v3 (que no lo tenían) la migración lo rellena como `[]`.
 - Las `ideas` y `revisiones` se muestran de más reciente a más antigua.
 
 Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
@@ -143,7 +150,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 ```json
 {
   "app": "sistema-personal",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "exportedAt": "2025-02-16T14:30:00.000Z",
   "data": {
     "sistema-personal-v1": { "...": "el objeto descrito arriba, ya parseado como JSON, no como string" }
@@ -154,7 +161,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 Campo por campo:
 
 - `app`: constante `"sistema-personal"`. El import **rechaza** cualquier archivo cuyo `app` no sea exactamente este.
-- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `3`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
+- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `4`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
 - `exportedAt`: fecha/hora ISO 8601 del momento del export.
 - `data`: objeto cuyas claves son **claves de localStorage** (por ahora solo `sistema-personal-v1`) y cuyos valores son el contenido **ya parseado como objeto JSON** (no strings escapados).
 
@@ -168,11 +175,12 @@ Comportamiento del **Import**:
 
 ### Instrucciones directas para el LLM
 
-- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**3**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config`, `progreso` en cada revisión, y en cada bloque `conducta` —conducta concreta— y `lugar`). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`, y vincula el `area` de cada bloque al `nombre` de un área de `sentido`. El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
-- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha) y `revisiones` (bitácora semanal con `progreso`). Interpreta cada sección según su propósito descrito arriba.
+- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**4**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config`, `progreso` en cada revisión, y en cada bloque `conducta` —conducta concreta— y `lugar`). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`, y vincula el `area` de cada bloque al `nombre` de un área de `sentido`. Normalmente deja `hechos` como `[]` (es un registro que la persona genera al usar la app; no lo inventes salvo que te lo pidan, y si lo incluyes, cada `bloqueId` debe coincidir con el `id` de un bloque existente). El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
+- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha), `revisiones` (bitácora semanal con `progreso`) y `hechos` (bloques completados por fecha). Interpreta cada sección según su propósito descrito arriba.
 
 ### Historial de schemaVersion
 
 - **v1**: primer esquema (`sentido`, `bloques`, `ideas`, `revisiones`).
 - **v2**: se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`): rellena `config` con la duración por defecto y `progreso: ""` en revisiones que no lo tuvieran, sin tocar el resto de los datos.
-- **v3** (actual): cada bloque suma `conducta` (la conducta concreta y exacta a ejecutar) y `lugar` (dónde). El efecto de las intenciones de implementación depende de vincular una situación exacta con una respuesta específica, no solo un día + área. Migración v2→v3 (`MIGRATIONS[2]`): rellena `conducta: ""` y `lugar: ""` en bloques que no los tuvieran, sin tocar el resto.
+- **v3**: cada bloque suma `conducta` (la conducta concreta y exacta a ejecutar) y `lugar` (dónde). El efecto de las intenciones de implementación depende de vincular una situación exacta con una respuesta específica, no solo un día + área. Migración v2→v3 (`MIGRATIONS[2]`): rellena `conducta: ""` y `lugar: ""` en bloques que no los tuvieran, sin tocar el resto.
+- **v4** (actual): se añade `hechos` (array de `{id, bloqueId, fecha}`): registro de cada bloque marcado como **hecho** en una fecha, para dar recompensa inmediata en la pestaña Hoy en vez de esperar a la revisión semanal (en TDAH el circuito de recompensa está hipoactivado y hay aversión a la demora). Migración v3→v4 (`MIGRATIONS[3]`): rellena `hechos: []` si no existía, sin tocar el resto.
