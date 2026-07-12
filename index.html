@@ -91,7 +91,7 @@ tailwind.config = {
     <div class="mt-6 border-l-2 border-blanco pl-4">
       <p class="font-mono text-[11px] tracking-widest text-gris">CUANDO SURJA LA DISTRACCIÓN</p>
       <p class="text-2xl leading-snug mt-1 font-semibold">La ignoro y vuelvo al bloque.</p>
-      <p class="text-gris text-sm mt-2 leading-relaxed">No luches contra la distracción ni te exijas más esfuerzo: solo no le des atención y retoma lo que ya decidiste. Ignorar la distracción funciona mejor que intentar esforzarte más.</p>
+      <p class="text-gris text-sm mt-2 leading-relaxed">No luches contra la distracción ni te exijas más esfuerzo: solo no le des atención y retoma lo que ya decidiste.</p>
     </div>
     <p id="ancla-vision" class="text-2xl leading-relaxed mt-8 font-medium whitespace-pre-wrap"></p>
     <div id="ancla-areas" class="mt-8 space-y-5"></div>
@@ -415,7 +415,6 @@ function viewAhora(){
     }
   });
 
-  h += `<p class="text-gris text-sm leading-relaxed">Un solo foco por bloque: cuando estás en uno, lo demás no existe. Marcar “hecho” al terminar te da la señal de avance en el momento, no dentro de una semana.</p>`;
   return h;
 }
 
@@ -621,7 +620,6 @@ function viewRevision(){
     <p class="label !text-blanco">REVISIÓN SEMANAL</p>
     <p class="text-sm mb-1.5">¿Qué progreso hiciste esta semana en trabajo que importa?</p>
     <textarea class="input" rows="3" id="rev-progreso"></textarea>
-    <p class="text-tenue text-[11px] font-mono mt-1.5 leading-relaxed">Ver tu propio progreso es el mayor motor de motivación que existe.</p>
     <p class="text-sm mt-3 mb-1.5">¿Qué avancé esta semana?</p>
     <textarea class="input" rows="3" id="rev-avance"></textarea>
     <p class="text-sm mt-3 mb-1.5">¿Qué sigue la próxima semana?</p>
