@@ -90,32 +90,33 @@ tailwind.config = {
     <p class="font-mono text-xs tracking-[0.15em] text-blanco border-b border-linea pb-3">RESPIRA. ESTO ES LO QUE YA DECIDISTE.</p>
     <div class="mt-6 border-l-2 border-blanco pl-4">
       <p class="font-mono text-[11px] tracking-widest text-gris">CUANDO SURJA LA DISTRACCIÓN</p>
-      <p class="text-2xl leading-snug mt-1 font-semibold">La ignoro y vuelvo al bloque.</p>
+      <p class="text-2xl leading-snug mt-1 font-semibold">La ignoro y vuelvo al plan.</p>
       <p class="text-gris text-sm mt-2 leading-relaxed">No luches contra la distracción ni te exijas más esfuerzo: solo no le des atención y retoma lo que ya decidiste.</p>
     </div>
     <p id="ancla-vision" class="text-2xl leading-relaxed mt-8 font-medium whitespace-pre-wrap"></p>
     <div id="ancla-areas" class="mt-8 space-y-5"></div>
     <div id="ancla-hoy" class="mt-10"></div>
-    <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Ignorar y volver al bloque →</button>
+    <button id="cerrar-ancla" class="btn btn-primary mt-6 !px-6 !py-3">Ignorar y volver al plan →</button>
   </div>
 </div>
 
-<!-- Overlay temporizador de foco (una cosa a la vez · tiempo visible) -->
-<div id="foco" class="hidden fixed inset-0 bg-negro z-50 overflow-y-auto px-5 py-12" role="dialog" aria-label="Bloque en foco">
+<!-- Overlay de foco (una cosa a la vez · escudo anti-distracción). Sin cronómetro: no cronometra la
+     ejecución; solo aísla la conducta que ya decidiste y recuerda ignorar lo que interrumpe. -->
+<div id="foco" class="hidden fixed inset-0 bg-negro z-50 overflow-y-auto px-5 py-12" role="dialog" aria-label="Plan en foco">
   <div class="max-w-2xl mx-auto">
     <p class="font-mono text-xs tracking-[0.15em] text-gris border-b border-linea pb-3">UN SOLO FOCO · LO DEMÁS NO EXISTE</p>
-    <p id="foco-conducta" class="text-2xl leading-snug mt-6 font-semibold"></p>
-    <p id="foco-area" class="text-gris text-sm mt-2 font-mono"></p>
-    <div class="mt-10 text-center">
-      <p id="foco-reloj" class="font-mono text-6xl sm:text-7xl font-bold tabular-nums tracking-tight" aria-live="off">00:00</p>
-      <p id="foco-estado" class="font-mono text-[11px] tracking-widest text-gris mt-3"></p>
+    <p id="foco-cuando" class="font-mono text-[11px] tracking-widest text-gris mt-6"></p>
+    <p id="foco-conducta" class="text-3xl leading-snug mt-2 font-semibold"></p>
+    <p id="foco-area" class="text-gris text-sm mt-3 font-mono"></p>
+    <div class="mt-12 border-l-2 border-blanco pl-4">
+      <p class="font-mono text-[11px] tracking-widest text-gris">CUANDO SURJA UNA DISTRACCIÓN</p>
+      <p class="text-lg leading-snug mt-1 font-medium">La ignoro y vuelvo aquí.</p>
+      <p class="text-tenue text-[11px] leading-relaxed mt-2">No la negocies ni te exijas más esfuerzo: solo no le des atención. Ya decidiste este plan.</p>
     </div>
-    <div class="mt-10 flex gap-2 flex-wrap justify-center">
+    <div class="mt-12 flex gap-2 flex-wrap justify-center">
       <button id="foco-hecho" class="btn btn-primary !px-6 !py-3">Terminé ✓</button>
-      <button id="foco-pausa" class="btn !px-5 !py-3">Pausar</button>
       <button id="foco-salir" class="btn !px-5 !py-3">Salir</button>
     </div>
-    <p class="text-tenue text-[11px] font-mono mt-8 text-center leading-relaxed">Si surge una distracción, la ignoras y vuelves aquí. No la negocies: ya decidiste este bloque.</p>
   </div>
 </div>
 
@@ -185,10 +186,10 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- Hoja: editar un bloque. Un solo bloque llena la pantalla; el resto de la semana no compite
-     por la atención (mismo principio que el temporizador de foco). Decidir de a uno baja la
-     carga cognitiva y la parálisis de "¿por dónde empiezo?". -->
-<div id="bloque" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Editar bloque" aria-modal="true">
+<!-- Hoja: editar un plan si-entonces. Un solo plan llena la pantalla; el resto no compite por la
+     atención (mismo principio que el foco). Decidir de a uno baja la carga cognitiva y la
+     parálisis de "¿por dónde empiezo?". -->
+<div id="bloque" class="hidden fixed inset-0 z-50" role="dialog" aria-label="Editar plan si-entonces" aria-modal="true">
   <div id="bloque-backdrop" class="absolute inset-0 bg-negro/80 backdrop-blur-sm"></div>
   <div class="absolute inset-x-0 bottom-0 sm:inset-x-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 bg-negro border-t sm:border border-linea rounded-t-2xl sm:rounded-2xl overflow-y-auto max-h-[92vh] sm:max-w-lg sm:mx-auto">
     <div class="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -209,14 +210,17 @@ const ORDEN = [1,2,3,4,5,6,0];
 // Arquitectura radical: en vez de 5 pestañas coiguales, 3 modos con propósito, en navegación
 // inferior (zona del pulgar). AHORA = ejecutar (home) · PLAN = decidir · AVANCE = ver progreso.
 const MODOS = [["ahora","AHORA"],["plan","PLAN"],["avance","AVANCE"]];
-const MENU_TABS = [["config","CONFIGURACIÓN"],["datos","DATOS"],["acerca","ACERCA"]];
-const SCHEMA_VERSION = 4;
+const MENU_TABS = [["datos","DATOS"],["acerca","ACERCA"]];
+const SCHEMA_VERSION = 5;
 const APP_ID = "sistema-personal";
 const PREFIX = "sistema-personal"; // toda clave de localStorage de la app empieza así
-const DUR_DEFECTO = "60 min"; // duración por defecto de un bloque nuevo (preferencia, no ciencia)
+// Tipos de plan si-entonces (Gollwitzer). "inicio": vincula una señal con la conducta para
+// arrancar (cap. inicio de la acción). "habito": ante un estímulo, sustituye una respuesta
+// habitual no deseada por la conducta a la meta (cap. inhibir respuestas habituales).
+const TIPOS_PLAN = { inicio:"PARA EMPEZAR", habito:"PARA CORTAR UN HÁBITO" };
 
 const DEFAULT_DATA = {
-  config:{ durBloque: DUR_DEFECTO },
+  config:{},
   sentido:{
     vision:"Escribe aquí tu visión: ¿qué persona estás construyendo? ¿Qué vida conecta tus proyectos, tu estudio, la lectura y tus ideas?",
     areas:[
@@ -226,12 +230,15 @@ const DEFAULT_DATA = {
       {id:"a4", nombre:"Lectura de sistemas", proposito:"Ej: Leo sobre sistemas porque quiero pensar mejor, no solo trabajar más."}
     ]
   },
-  bloques:[
-    {id:"b1", dia:1, hora:"07:00", lugar:"", conducta:"Leer 20 páginas del material y anotar 3 ideas", area:"Estudio", dur:"60 min"},
-    {id:"b2", dia:1, hora:"19:00", lugar:"", conducta:"Escribir la siguiente parte del proyecto y guardar", area:"Proyectos", dur:"90 min"},
-    {id:"b3", dia:3, hora:"19:00", lugar:"", conducta:"Retomar la tarea abierta del proyecto, sin abrir nada más", area:"Proyectos", dur:"90 min"},
-    {id:"b4", dia:5, hora:"19:00", lugar:"", conducta:"Cerrar una tarea del proyecto y dejar anotada la siguiente", area:"Proyectos", dur:"90 min"},
-    {id:"b5", dia:0, hora:"10:00", lugar:"", conducta:"Escribir 5 ideas nuevas para proyectos", area:"Ideación", dur:"45 min"}
+  // planes: intenciones de implementación ("cuando surja la situación X, haré Y"). La señal es
+  // texto libre (una hora o un evento anticipado); no hay agenda por reloj ni cronómetro.
+  planes:[
+    {id:"p1", dia:1, cuando:"07:00", lugar:"el escritorio", conducta:"Leer 20 páginas del material y anotar 3 ideas", area:"Estudio", tipo:"inicio", enVezDe:""},
+    {id:"p2", dia:1, cuando:"al llegar de trabajar", lugar:"", conducta:"Escribir la siguiente parte del proyecto y guardar", area:"Proyectos", tipo:"inicio", enVezDe:""},
+    {id:"p3", dia:3, cuando:"al llegar de trabajar", lugar:"", conducta:"Retomar la tarea abierta del proyecto, sin abrir nada más", area:"Proyectos", tipo:"inicio", enVezDe:""},
+    {id:"p4", dia:5, cuando:"al llegar de trabajar", lugar:"", conducta:"Cerrar una tarea del proyecto y dejar anotada la siguiente", area:"Proyectos", tipo:"inicio", enVezDe:""},
+    {id:"p5", dia:0, cuando:"después del desayuno", lugar:"", conducta:"Escribir 5 ideas nuevas para proyectos", area:"Ideación", tipo:"inicio", enVezDe:""},
+    {id:"p6", dia:null, cuando:"cuando abra el navegador para trabajar", lugar:"", conducta:"abro primero el documento del proyecto", area:"Proyectos", tipo:"habito", enVezDe:"abrir redes o el correo por costumbre"}
   ],
   ideas:[],
   revisiones:[],
@@ -243,22 +250,35 @@ const DEFAULT_DATA = {
 function normalizar(d){
   if(!d || typeof d !== "object") return structuredClone(DEFAULT_DATA);
   if(!d.config || typeof d.config !== "object") d.config = {};
-  if(typeof d.config.durBloque !== "string" || !d.config.durBloque.trim()) d.config.durBloque = DUR_DEFECTO;
+  // La duración/cronómetro se retiró: una intención de implementación automatiza el INICIO de la
+  // acción, no cronometra su ejecución. Se limpia la vieja preferencia si venía en un backup.
+  delete d.config.durBloque;
   if(!d.sentido || typeof d.sentido !== "object") d.sentido = structuredClone(DEFAULT_DATA.sentido);
   if(!Array.isArray(d.sentido.areas)) d.sentido.areas = [];
-  if(!Array.isArray(d.bloques)) d.bloques = [];
-  d.bloques.forEach(function(b){
-    if(b && typeof b === "object"){
-      if(typeof b.conducta !== "string") b.conducta = "";
-      if(typeof b.lugar !== "string") b.lugar = "";
+  // Modelo purificado: "planes" si-entonces. Migra el antiguo `bloques` (agenda por reloj) al
+  // nuevo formato: la `hora` HH:MM pasa a ser una señal `cuando` de texto libre (hora o evento).
+  if(!Array.isArray(d.planes)) d.planes = Array.isArray(d.bloques) ? d.bloques : [];
+  delete d.bloques;
+  d.planes.forEach(function(p){
+    if(!p || typeof p !== "object") return;
+    if(typeof p.cuando !== "string" || !p.cuando.trim()){
+      p.cuando = (typeof p.hora === "string" && p.hora.trim()) ? p.hora : "";
     }
+    delete p.hora; delete p.dur;
+    if(typeof p.conducta !== "string") p.conducta = "";
+    if(typeof p.lugar !== "string") p.lugar = "";
+    if(typeof p.enVezDe !== "string") p.enVezDe = "";
+    if(p.tipo !== "inicio" && p.tipo !== "habito") p.tipo = "inicio";
+    if(p.dia !== null && !(Number.isInteger(p.dia) && p.dia >= 0 && p.dia <= 6)) p.dia = null;
   });
   if(!Array.isArray(d.ideas)) d.ideas = [];
   if(!Array.isArray(d.revisiones)) d.revisiones = [];
   d.revisiones.forEach(function(r){ if(r && typeof r.progreso !== "string") r.progreso = ""; });
-  // hechos: registro de qué bloque se marcó como hecho en qué fecha (recompensa inmediata).
+  // hechos: registro de qué plan se marcó como hecho en qué fecha (percibir el avance).
   if(!Array.isArray(d.hechos)) d.hechos = [];
-  d.hechos = d.hechos.filter(function(h){ return h && typeof h === "object" && h.bloqueId && h.fecha; });
+  d.hechos.forEach(function(h){ if(h && typeof h === "object" && !h.planId && h.bloqueId) h.planId = h.bloqueId; });
+  d.hechos = d.hechos.filter(function(h){ return h && typeof h === "object" && h.planId && h.fecha; });
+  d.hechos.forEach(function(h){ delete h.bloqueId; });
   return d;
 }
 
@@ -291,141 +311,109 @@ const hoyISO = () => new Date().toISOString().slice(0,10);
 // Fecha ISO de hace N días (para contar los "hechos" de la última semana en la Revisión).
 const isoHaceDias = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0,10); };
 
-// Extrae los minutos de una duración libre ("60 min", "90", "1h 30"). Si no hay número usable,
-// cae en la duración por defecto de config, y como último recurso 25 min (foco corto sensato).
-function parseMin(s){
-  const m = String(s || "").match(/\d+/);
-  if(m){ const n = parseInt(m[0], 10); if(n > 0) return n; }
-  const c = String(data.config.durBloque || "").match(/\d+/);
-  return (c && parseInt(c[0], 10) > 0) ? parseInt(c[0], 10) : 25;
+// ¿Este plan quedó marcado como hecho en esta fecha? (percibir el avance, no auditar)
+function estaHecho(planId, fecha){
+  return data.hechos.some(h => h.planId === planId && h.fecha === fecha);
 }
-// Minutos desde medianoche de una hora "HH:MM".
-function horaAMin(hora){
-  const p = String(hora || "").split(":");
-  return (parseInt(p[0],10) || 0) * 60 + (parseInt(p[1],10) || 0);
-}
-// ¿Este bloque quedó marcado como hecho en esta fecha? (recompensa inmediata, no diferida)
-function estaHecho(bloqueId, fecha){
-  return data.hechos.some(h => h.bloqueId === bloqueId && h.fecha === fecha);
-}
-function marcarHecho(bloqueId, fecha){
-  if(estaHecho(bloqueId, fecha)) return;
-  data.hechos.push({ id: uid(), bloqueId, fecha });
+function marcarHecho(planId, fecha){
+  if(estaHecho(planId, fecha)) return;
+  data.hechos.push({ id: uid(), planId, fecha });
   save();
 }
-function desmarcarHecho(bloqueId, fecha){
-  data.hechos = data.hechos.filter(h => !(h.bloqueId === bloqueId && h.fecha === fecha));
+function desmarcarHecho(planId, fecha){
+  data.hechos = data.hechos.filter(h => !(h.planId === planId && h.fecha === fecha));
   save();
 }
+// Etiqueta de la señal de un plan para mostrarla (o un aviso si aún no se definió).
+function señalDe(p){ return (p.cuando && p.cuando.trim()) ? p.cuando.trim() : "— sin señal —"; }
+// ¿Un plan aplica hoy? Los de día fijo, si coincide; los de "cualquier día" (dia===null),
+// que se disparan por su señal, aplican todos los días.
+function aplicaHoy(p, hoy){ return p.dia === hoy || p.dia === null; }
 
 let tab = "ahora";
-let menuTab = "config";
+let menuTab = "datos";
 
 /* ---------- Vistas ---------- */
-// AHORA: la pantalla-hogar de ejecución (no de edición). Se abre aquí. Muestra UNA cosa —lo que va
-// ahora o lo que sigue— en grande, con el tiempo visible, contra la ceguera al tiempo. Permite
-// Empezar (temporizador de foco), "Solo 5 min" (romper la barrera de inicio) y marcar Hecho con
-// feedback inmediato. Planificar bloques vive en PLAN.
+// AHORA: la pantalla-hogar de ejecución (no de edición). Se abre aquí. Reúne los planes si-entonces
+// de hoy —los de este día más los de "cualquier día" (que se disparan por su señal)— y destaca UNO
+// en grande: el primero sin hacer. No hay agenda por reloj ni cuenta atrás; la señal (una hora o un
+// evento) es lo que dispara la acción. Empezar abre el foco (una cosa a la vez), Hecho registra el
+// avance. Planificar los planes vive en PLAN.
 function viewAhora(){
   const now = new Date();
   const hoy = now.getDay();
   const fecha = hoyISO();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
   const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
-  const propositoDe = {};
-  data.sentido.areas.forEach(a => { if(a.nombre) propositoDe[a.nombre] = a.proposito; });
-  const bloques = data.bloques.filter(b => b.dia === hoy).sort((a,b) => a.hora.localeCompare(b.hora));
+  const planes = data.planes.filter(p => aplicaHoy(p, hoy));
 
-  // Clasifica: bloque "ahora" (en curso y no hecho) y "sigue" (el próximo futuro).
-  let ahoraId = null, sigueId = null, minutosParaSigue = null;
-  bloques.forEach(function(b){
-    const start = horaAMin(b.hora);
-    const end = start + parseMin(b.dur);
-    if(nowMin >= start && nowMin < end && !estaHecho(b.id, fecha) && ahoraId === null) ahoraId = b.id;
-    if(start > nowMin && sigueId === null){ sigueId = b.id; minutosParaSigue = start - nowMin; }
-  });
+  const pendientes = planes.filter(p => !estaHecho(p.id, fecha));
+  const foco = pendientes.length ? pendientes[0] : null;
+  const hechosHoy = planes.filter(p => estaHecho(p.id, fecha)).length;
 
-  const hechosHoy = bloques.filter(b => estaHecho(b.id, fecha)).length;
-  const relojHM = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-
-  // Cabecera: qué está pasando ahora mismo, en una sola frase.
+  // Cabecera: la única cosa a la que atender ahora, o el estado del día.
   let cabecera;
-  if(bloques.length === 0){
-    const sinSistema = data.bloques.length === 0;
+  if(planes.length === 0){
+    const sinSistema = data.planes.length === 0;
     cabecera = `
-      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
+      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()}</p>
       <p class="text-gris text-sm leading-relaxed">${sinSistema
-        ? "Aún no has construido tu sistema. Empieza por el sentido y el plan; con esa base, actuar será fácil."
-        : "Hoy no tienes bloques. Descansa o improvisa: la decisión de qué es importante ya vive en tu plan; no la reinventes ahora."}</p>
+        ? "Aún no has construido tu sistema. Empieza por el sentido y arma tu primer plan si-entonces; con esa base, actuar será fácil."
+        : "Hoy no tienes planes. Descansa o improvisa: la decisión de qué es importante ya vive en tus planes; no la reinventes ahora."}</p>
       ${sinSistema
         ? `<button class="btn btn-primary mt-3 ir-vista" data-vista="construir">Construir mi sistema →</button>`
-        : `<button class="btn btn-primary mt-3 ir-modo" data-modo="plan">Ver mi plan →</button>`}`;
-  } else if(ahoraId){
-    const b = bloques.find(x => x.id === ahoraId);
-    const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
+        : `<button class="btn btn-primary mt-3 ir-modo" data-modo="plan">Ver mis planes →</button>`}`;
+  } else if(foco){
+    const que = (foco.conducta && foco.conducta.trim()) ? foco.conducta : (foco.area || "tu plan");
+    const enVez = foco.tipo === "habito" && foco.enVezDe && foco.enVezDe.trim()
+      ? ` <span class="text-gris">en vez de ${esc(foco.enVezDe)}</span>` : "";
     cabecera = `
-      <p class="label !text-blanco">AHORA · ${relojHM}</p>
-      <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
-      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>
+      <p class="label !text-blanco">CUANDO ${esc(señalDe(foco).toUpperCase())}</p>
+      <p class="text-2xl leading-snug font-semibold mt-1">→ ${esc(que)}${enVez}</p>
+      <p class="text-gris text-sm mt-2 font-mono">${foco.lugar ? esc(foco.lugar) + " · " : ""}${foco.area ? "sirve a: " + esc(foco.area) : "sin propósito vinculado"}</p>
       <div class="flex gap-2 mt-4 flex-wrap">
-        <button class="btn btn-primary !py-3 !px-5 hoy-empezar" data-id="${b.id}">▶ Empezar en foco</button>
-        <button class="btn !py-3 hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
-        <button class="btn !py-3 hoy-hecho" data-id="${b.id}">✓ Hecho</button>
+        <button class="btn btn-primary !py-3 !px-5 hoy-empezar" data-id="${foco.id}">▶ Empezar en foco</button>
+        <button class="btn !py-3 hoy-hecho" data-id="${foco.id}">✓ Hecho</button>
       </div>
-      <p class="text-tenue text-[11px] font-mono mt-3 leading-relaxed">Si te cuesta arrancar, empieza con 5 minutos. Empezar es casi todo.</p>`;
-  } else if(sigueId){
-    const b = bloques.find(x => x.id === sigueId);
-    const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "tu bloque");
-    const falta = minutosParaSigue < 60 ? `${minutosParaSigue} min` : `${Math.floor(minutosParaSigue/60)} h ${minutosParaSigue%60} min`;
-    cabecera = `
-      <p class="label !text-blanco">SIGUE · EN ${esc(falta.toUpperCase())} · ${relojHM}</p>
-      <p class="text-2xl leading-snug font-semibold">${esc(que)}</p>
-      <p class="text-gris text-sm mt-1 font-mono">${esc(b.hora)}${b.dur ? " · " + esc(b.dur) : ""}${b.area ? " · " + esc(b.area) : ""}</p>
-      <div class="flex gap-2 mt-4 flex-wrap">
-        <button class="btn btn-primary !py-3 !px-5 hoy-empezar" data-id="${b.id}">▶ Empezar ahora</button>
-        <button class="btn !py-3 hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
-      </div>
-      <p class="text-tenue text-[11px] font-mono mt-3 leading-relaxed">No hace falta esperar la hora exacta: si puedes, arranca ya. Empezar es casi todo.</p>`;
+      <p class="text-tenue text-[11px] font-mono mt-3 leading-relaxed">Cuando aparezca la señal, no la negocies: solo arranca. Empezar es casi todo.</p>`;
   } else {
     cabecera = `
-      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()} · ${relojHM}</p>
-      <p class="text-gris text-sm leading-relaxed">Por hoy ya está: no quedan bloques por delante. Lo que hiciste, cuenta. No sumes más ahora.</p>`;
+      <p class="label !text-blanco">HOY · ${DIAS[hoy].toUpperCase()}</p>
+      <p class="text-gris text-sm leading-relaxed">Por hoy ya está: no quedan planes por delante. Lo que hiciste, cuenta. No sumes más ahora.</p>`;
   }
 
   let h = `<div class="card !bg-negro border-blanco">${cabecera}</div>`;
 
   if(hechosHoy > 0){
-    h += `<p class="font-mono text-[11px] tracking-widest text-blanco">✓ ${hechosHoy} ${hechosHoy === 1 ? "BLOQUE HECHO" : "BLOQUES HECHOS"} HOY · ESO CUENTA</p>`;
+    h += `<p class="font-mono text-[11px] tracking-widest text-blanco">✓ ${hechosHoy} ${hechosHoy === 1 ? "PLAN CUMPLIDO" : "PLANES CUMPLIDOS"} HOY · ESO CUENTA</p>`;
   }
 
-  // Lista de bloques de hoy, en orden. Los hechos se apagan; el "ahora" se resalta.
-  bloques.forEach(function(b){
-    const hecho = estaHecho(b.id, fecha);
-    const esAhora = b.id === ahoraId;
-    const huerfano = b.area && !areasVivas.has(b.area);
-    const que = (b.conducta && b.conducta.trim()) ? b.conducta : `<span class="text-tenue italic">Sin conducta concreta — defínela en Semana</span>`;
+  // Lista de los planes de hoy. Los hechos se apagan; el foco (el primero sin hacer) se resalta.
+  planes.forEach(function(p){
+    const hecho = estaHecho(p.id, fecha);
+    const esFoco = foco && p.id === foco.id;
+    const huerfano = p.area && !areasVivas.has(p.area);
+    const que = (p.conducta && p.conducta.trim()) ? esc(p.conducta) : `<span class="text-tenue italic">Sin conducta concreta — defínela en Planes</span>`;
+    const enVez = p.tipo === "habito" && p.enVezDe && p.enVezDe.trim()
+      ? ` <span class="text-gris">en vez de ${esc(p.enVezDe)}</span>` : "";
     if(hecho){
       h += `
       <div class="card flex gap-3 items-start opacity-60">
         <span class="text-blanco text-lg leading-none pt-0.5" aria-hidden="true">✓</span>
         <div class="flex-1 min-w-0">
-          <p class="font-mono text-[11px] text-gris">${esc(b.hora)} · HECHO</p>
+          <p class="font-mono text-[11px] text-gris">CUANDO ${esc(señalDe(p).toUpperCase())} · HECHO</p>
           <p class="mt-1 leading-snug line-through decoration-tenue">${que}</p>
         </div>
-        <button class="btn !px-2.5 !text-[11px] hoy-deshacer" data-id="${b.id}">Deshacer</button>
+        <button class="btn !px-2.5 !text-[11px] hoy-deshacer" data-id="${p.id}">Deshacer</button>
       </div>`;
     } else {
       h += `
-      <div class="card ${esAhora ? "!border-blanco" : ""}">
-        <div class="flex items-baseline justify-between gap-2">
-          <p class="label ${esAhora ? "!text-blanco" : ""} !mb-0">${esc(b.hora)}${esAhora ? " · AHORA" : ""}${b.dur ? " · " + esc(b.dur) : ""}</p>
-        </div>
-        <p class="mt-2 leading-snug font-medium">${que}</p>
-        <p class="text-gris text-[11px] font-mono mt-1">${huerfano ? "⚠ " + esc(b.area) + " (sin propósito activo)" : (b.area ? "sirve a: " + esc(b.area) : "sin propósito vinculado")}</p>
+      <div class="card ${esFoco ? "!border-blanco" : ""}">
+        <p class="label ${esFoco ? "!text-blanco" : ""} !mb-0">CUANDO ${esc(señalDe(p).toUpperCase())}${esFoco ? " · AHORA" : ""}</p>
+        <p class="mt-2 leading-snug font-medium">→ ${que}${enVez}</p>
+        <p class="text-gris text-[11px] font-mono mt-1">${huerfano ? "⚠ " + esc(p.area) + " (sin propósito activo)" : (p.area ? "sirve a: " + esc(p.area) : "sin propósito vinculado")}</p>
         <div class="flex gap-2 mt-3 flex-wrap">
-          <button class="btn hoy-empezar" data-id="${b.id}">▶ Empezar</button>
-          <button class="btn hoy-empezar" data-id="${b.id}" data-min="5">Solo 5 min</button>
-          <button class="btn hoy-hecho" data-id="${b.id}">✓ Hecho</button>
+          <button class="btn hoy-empezar" data-id="${p.id}">▶ Empezar</button>
+          <button class="btn hoy-hecho" data-id="${p.id}">✓ Hecho</button>
         </div>
       </div>`;
     }
@@ -443,10 +431,10 @@ function seccion(titulo, cuerpo, abierta){
   </details>`;
 }
 
-// PLAN: un solo lugar para decidir. Reúne la semana (bloques), el porqué (Sentido) y las ideas
-// capturadas, en secciones colapsables para no abrumar. La semana abierta por defecto.
+// PLAN: un solo lugar para decidir. Reúne los planes si-entonces, el porqué (Sentido) y las ideas
+// capturadas, en secciones colapsables para no abrumar. Los planes, abiertos por defecto.
 function viewPlan(){
-  return seccion("TU SEMANA · BLOQUES", viewSemana(), true)
+  return seccion("TUS PLANES SI-ENTONCES", viewPlanes(), true)
        + seccion("TU PORQUÉ · SENTIDO", viewSentido(), false)
        + seccion(`IDEAS CAPTURADAS · ${data.ideas.length}`, viewIdeasInbox(), false);
 }
@@ -473,7 +461,7 @@ function viewAvance(){
   let h = `
   <div class="card !bg-negro border-blanco">
     <p class="label !text-blanco">TU AVANCE · ÚLTIMOS 7 DÍAS</p>
-    <p class="text-2xl font-semibold">✓ ${total} ${total === 1 ? "bloque hecho" : "bloques hechos"}</p>
+    <p class="text-2xl font-semibold">✓ ${total} ${total === 1 ? "plan cumplido" : "planes cumplidos"}</p>
     <div class="flex gap-1.5 mt-4">${tira}</div>
     <p class="text-gris text-sm mt-3 leading-relaxed">No es una meta ni una racha: es lo que ya avanzaste. Un día en blanco no rompe nada. Percibir el propio progreso es el mayor motor de motivación.</p>
   </div>`;
@@ -516,9 +504,9 @@ function viewConstruir(){
     { k:"areas",
       t:"¿Por qué? Tus áreas.",
       g:"Divide tu vida en unas pocas áreas (2 a 4 bastan). En cada una, escribe en una frase por qué importa: no una meta vaga, sino una decisión que ya tomaste sobre algo que de verdad te importa. Sé honesto: si un porqué te da igual, ningún plan que cuelgue de él va a moverte. Ese porqué fuerte será tu ancla cuando el foco se pierda." },
-    { k:"bloques",
-      t:"Convierte un porqué en acción.",
-      g:"Ahora aterriza uno o dos porqués en bloques concretos: “si es [día] a las [hora] → haré [conducta exacta]”. Reserva los bloques para lo que te cuesta iniciar. No llenes la semana: con empezar por uno basta. Al fijar un bloque, comprométete con él: “tengo la firme intención de seguir esto”." }
+    { k:"planes",
+      t:"Convierte un porqué en un plan si-entonces.",
+      g:"Ahora aterriza uno o dos porqués en planes concretos: “cuando [señal: una hora o un evento] → haré [conducta exacta]”. La señal puede ser un reloj (“7:00”) o un evento anticipado (“al llegar de trabajar”): lo que importa es que la reconozcas cuando aparezca. Reserva los planes para lo que te cuesta iniciar. No llenes la agenda: con empezar por uno basta. Al fijar un plan, comprométete: “tengo la firme intención de seguir esto”." }
   ];
   const n = Math.min(Math.max(paso, 0), PASOS.length - 1);
   const p = PASOS[n];
@@ -532,7 +520,7 @@ function viewConstruir(){
   } else if(p.k === "areas"){
     cuerpo = viewAreasEditor();
   } else {
-    cuerpo = viewSemana();
+    cuerpo = viewPlanes();
   }
   const ultimo = n === PASOS.length - 1;
   return `
@@ -568,96 +556,115 @@ function opcionesArea(sel){
   return primera + huerfana + opts;
 }
 
-// SEMANA: vista de resumen, no de edición. Cada día muestra sus bloques como filas escaneables
-// de una sola línea (hora → conducta · propósito). Editar un bloque abre un modal enfocado
-// (viewBloqueModal): así el resumen queda calmado y sin muros de campos, y cada decisión se
-// toma de a una. Divulgación progresiva: los detalles aparecen justo cuando vas a decidirlos.
-function viewSemana(){
+// PLANES: vista de resumen, no de edición. Agrupa tus intenciones de implementación por día (más un
+// grupo "cualquier día" para los que se disparan por su señal sin fecha fija). Cada plan es una fila
+// escaneable: "cuando [señal] → [conducta]". Tocar una abre el modal enfocado (renderPlanModal): así
+// el resumen queda calmado y cada decisión se toma de a una. Divulgación progresiva.
+function viewPlanes(){
   const hoy = new Date().getDay();
   const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
   let h = `
   <div class="card !bg-negro">
-    <p class="label !text-blanco">SI ES [DÍA] A LAS [HORA] → HARÉ [CONDUCTA CONCRETA]</p>
-    <p class="text-gris text-sm leading-relaxed">Vincular una situación exacta (cuándo y dónde) con una conducta concreta es lo que dispara la acción sola. Toca un bloque para decidirlo con calma, de a uno; la decisión se toma ahí. A la hora no la negocias ni la dejas “para cuando puedas”: solo la ejecutas.</p>
+    <p class="label !text-blanco">CUANDO [SEÑAL] → HARÉ [CONDUCTA CONCRETA]</p>
+    <p class="text-gris text-sm leading-relaxed">Vincular una señal anticipada —una hora o un evento— con una conducta concreta es lo que dispara la acción sola: al encontrar la señal, actúas sin deliberar. Toca un plan para decidirlo con calma, de a uno. Cuando aparezca la señal no la negocias ni la dejas “para cuando puedas”: solo la ejecutas.</p>
   </div>`;
-  $.each(ORDEN, function(_, d){
-    const bloques = data.bloques.filter(b => b.dia === d).sort((a,b) => a.hora.localeCompare(b.hora));
+  // Grupos: un bucket por cada día (empezando en lunes) + uno final para dia===null.
+  const grupos = ORDEN.map(d => ({ dia:d, etiqueta:DIAS[d].toUpperCase(), esHoy:hoy===d }))
+    .concat([{ dia:null, etiqueta:"CUALQUIER DÍA · POR SEÑAL", esHoy:false }]);
+  $.each(grupos, function(_, g){
+    const planes = data.planes.filter(p => p.dia === g.dia);
     h += `
-    <div class="card ${hoy===d ? "!border-blanco" : ""}">
-      <p class="label !mb-3 ${hoy===d ? "!text-blanco" : ""}">${DIAS[d].toUpperCase()}${hoy===d ? " · HOY" : ""}</p>
-      ${bloques.length===0 ? `<p class="text-tenue text-sm mb-3">Sin bloques — día libre o de descanso.</p>` : ""}`;
-    $.each(bloques, function(_, b){
-      const huerfano = b.area && !areasVivas.has(b.area);
-      const conducta = (b.conducta && b.conducta.trim()) ? esc(b.conducta) : "";
+    <div class="card ${g.esHoy ? "!border-blanco" : ""}">
+      <p class="label !mb-3 ${g.esHoy ? "!text-blanco" : ""}">${g.etiqueta}${g.esHoy ? " · HOY" : ""}</p>
+      ${planes.length===0 ? `<p class="text-tenue text-sm mb-3">${g.dia===null ? "Sin planes por señal — los que no dependen de un día van aquí." : "Sin planes — día libre o de descanso."}</p>` : ""}`;
+    $.each(planes, function(_, p){
+      const huerfano = p.area && !areasVivas.has(p.area);
+      const conducta = (p.conducta && p.conducta.trim()) ? esc(p.conducta) : "";
+      const enVez = p.tipo === "habito" && p.enVezDe && p.enVezDe.trim() ? ` · en vez de ${esc(p.enVezDe)}` : "";
       const meta = huerfano
-        ? `⚠ ${esc(b.area)} · sin propósito activo`
-        : (b.area ? esc(b.area) : "sin vincular a un propósito");
-      const metaDur = b.dur ? ` · ${esc(b.dur)}` : "";
+        ? `⚠ ${esc(p.area)} · sin propósito activo`
+        : (p.area ? esc(p.area) : "sin vincular a un propósito");
+      const badge = p.tipo === "habito" ? `<span class="font-mono text-[9px] tracking-widest text-gris border border-linea rounded px-1 py-0.5 shrink-0">HÁBITO</span>` : "";
       h += `
-      <button type="button" class="edit-bloque w-full text-left border ${huerfano ? "border-dashed border-gris" : "border-linea"} rounded-lg p-3 mb-2 flex items-center gap-3 hover:border-blanco focus:outline-none focus:border-blanco focus:ring-1 focus:ring-blanco" data-id="${b.id}">
-        <span class="font-mono text-sm text-blanco tabular-nums shrink-0">${esc(b.hora)}</span>
+      <button type="button" class="edit-plan w-full text-left border ${huerfano ? "border-dashed border-gris" : "border-linea"} rounded-lg p-3 mb-2 flex items-center gap-3 hover:border-blanco focus:outline-none focus:border-blanco focus:ring-1 focus:ring-blanco" data-id="${p.id}">
         <span class="flex-1 min-w-0">
-          <span class="block text-sm truncate ${conducta ? "" : "text-tenue"}">${conducta || "Sin definir — toca para completar"}</span>
-          <span class="block font-mono text-[11px] ${huerfano ? "text-gris" : "text-tenue"} truncate mt-0.5">${meta}${metaDur}</span>
+          <span class="block font-mono text-[11px] text-blanco truncate">cuando ${esc(señalDe(p))}</span>
+          <span class="block text-sm truncate mt-0.5 ${conducta ? "" : "text-tenue"}">→ ${conducta || "Sin definir — toca para completar"}${enVez}</span>
+          <span class="block font-mono text-[11px] ${huerfano ? "text-gris" : "text-tenue"} truncate mt-0.5">${meta}</span>
         </span>
+        ${badge}
         <span class="text-tenue text-lg leading-none shrink-0" aria-hidden="true">›</span>
       </button>`;
     });
-    h += `<button class="btn !text-[11px] add-bloque w-full !py-2.5" data-dia="${d}">+ Bloque</button></div>`;
+    h += `<button class="btn !text-[11px] add-plan w-full !py-2.5" data-dia="${g.dia===null ? "" : g.dia}">+ Plan si-entonces</button></div>`;
   });
-  h += `<p class="text-gris text-sm">Un solo foco por bloque: cuando estás en un bloque, lo demás no existe. Cambiar entre tareas cuesta tiempo y errores, sobre todo en lo complejo.</p>`;
+  h += `<p class="text-gris text-sm">Un solo foco por plan: cuando estás en uno, lo demás no existe. Cambiar entre tareas cuesta tiempo y errores, sobre todo en lo complejo.</p>`;
   return h;
 }
 
-// Contenido del modal de edición de un bloque: la frase de intención de implementación rellenada
-// de arriba abajo (cuándo · dónde · qué · para qué · cuánto), una guía por campo y solo lo justo
-// visible. Los mismos data-bloque/data-f que antes, así la lógica de guardado se reutiliza.
-function renderBloqueModal(id){
-  const b = data.bloques.find(x => x.id === id);
-  if(!b) return;
+// Contenido del modal de edición de un plan si-entonces: la frase de intención de implementación
+// rellenada de arriba abajo (tipo · cuándo · día · dónde · qué · [en vez de] · para qué), una guía
+// por campo y solo lo justo visible. Cambiar tipo o día re-renderiza para reflejar la frase al
+// instante. Los data-plan/data-f alimentan la lógica de guardado compartida.
+function renderPlanModal(id){
+  const p = data.planes.find(x => x.id === id);
+  if(!p) return;
   const areasVivas = new Set(data.sentido.areas.map(a => a.nombre).filter(Boolean));
-  const huerfano = b.area && !areasVivas.has(b.area);
-  const diaU = DIAS[b.dia].toUpperCase();
-  $("#bloque-dia").text(`${diaU} · BLOQUE`);
+  const huerfano = p.area && !areasVivas.has(p.area);
+  const esHabito = p.tipo === "habito";
+  $("#bloque-dia").text(esHabito ? "PLAN SI-ENTONCES · CORTAR UN HÁBITO" : "PLAN SI-ENTONCES · PARA EMPEZAR");
+  const tipoOpts = `
+    <option value="inicio" ${!esHabito?"selected":""}>Para empezar algo que me cuesta iniciar</option>
+    <option value="habito" ${esHabito?"selected":""}>Para cortar un hábito no deseado</option>`;
+  let diaOpts = `<option value="" ${p.dia===null?"selected":""}>Cualquier día (se dispara por la señal)</option>`;
+  $.each(ORDEN, function(_, d){ diaOpts += `<option value="${d}" ${p.dia===d?"selected":""}>${DIAS[d]}</option>`; });
   $("#bloque-body").html(`
-    <p class="text-blanco text-lg font-semibold leading-snug">Una decisión, un bloque</p>
-    <p class="text-gris text-sm leading-relaxed mt-1 mb-6">Rellena la frase de arriba abajo. Reserva los bloques para lo que te cuesta iniciar: con empezar por uno basta.</p>
+    <p class="text-blanco text-lg font-semibold leading-snug">Una decisión, un plan</p>
+    <p class="text-gris text-sm leading-relaxed mt-1 mb-6">Rellena la frase de arriba abajo. Resérvalos para lo que te cuesta iniciar, o para el hábito que quieres cortar: con empezar por uno basta.</p>
 
-    <label class="label !mb-1.5 block">SI ES ${diaU} A LAS</label>
-    <input type="time" class="input !text-lg !w-[150px] tabular-nums" value="${esc(b.hora)}" data-bloque="${b.id}" data-f="hora">
+    <label class="label !mb-1.5 block">TIPO DE PLAN</label>
+    <select class="input" data-plan="${p.id}" data-f="tipo">${tipoOpts}</select>
+
+    <label class="label !mb-1.5 mt-5 block">CUANDO (SEÑAL: UNA HORA O UN EVENTO)</label>
+    <input class="input" placeholder="${esHabito ? "p. ej. cuando abra el navegador para trabajar" : "p. ej. 07:00 · o «al llegar de trabajar»"}" value="${esc(p.cuando||"")}" data-plan="${p.id}" data-f="cuando">
+    <p class="text-tenue text-[11px] leading-relaxed mt-1.5">La señal puede ser un reloj (“07:00”) o un evento que reconozcas al aparecer (“al terminar de desayunar”). Lo que dispara la acción es encontrar la señal, no la hora exacta.</p>
+
+    <label class="label !mb-1.5 mt-5 block">¿QUÉ DÍA?</label>
+    <select class="input !w-auto" data-plan="${p.id}" data-f="dia">${diaOpts}</select>
 
     <label class="label !mb-1.5 mt-5 block">EN (DÓNDE · OPCIONAL)</label>
-    <input class="input" placeholder="¿dónde estarás? p. ej. el escritorio, la biblioteca" value="${esc(b.lugar||"")}" data-bloque="${b.id}" data-f="lugar">
+    <input class="input" placeholder="¿dónde estarás? p. ej. el escritorio, la biblioteca" value="${esc(p.lugar||"")}" data-plan="${p.id}" data-f="lugar">
 
     <label class="label !mb-1.5 mt-5 block">→ HARÉ (CONDUCTA CONCRETA)</label>
-    <textarea class="input !text-base leading-relaxed" rows="2" placeholder="qué harás exactamente" data-bloque="${b.id}" data-f="conducta">${esc(b.conducta||"")}</textarea>
+    <textarea class="input !text-base leading-relaxed" rows="2" placeholder="qué harás exactamente" data-plan="${p.id}" data-f="conducta">${esc(p.conducta||"")}</textarea>
     <p class="text-tenue text-[11px] leading-relaxed mt-1.5">Una conducta exacta, no una meta vaga: “escribir 200 palabras del capítulo 3”, no “avanzar la tesis”.</p>
+    ${esHabito ? `
+    <label class="label !mb-1.5 mt-5 block">EN VEZ DE (EL HÁBITO QUE CORTO)</label>
+    <input class="input" placeholder="la respuesta habitual que reemplazo, p. ej. abrir redes por costumbre" value="${esc(p.enVezDe||"")}" data-plan="${p.id}" data-f="enVezDe">
+    <p class="text-tenue text-[11px] leading-relaxed mt-1.5">Nombrar la respuesta habitual que sustituyes bloquea su arranque automático cuando aparece la señal.</p>` : ""}
 
     <label class="label !mb-1.5 mt-5 block">SIRVE A (UN PROPÓSITO DE SENTIDO)</label>
-    <select class="input" data-bloque="${b.id}" data-f="area">${opcionesArea(b.area)}</select>
+    <select class="input" data-plan="${p.id}" data-f="area">${opcionesArea(p.area)}</select>
     ${huerfano
-      ? `<p class="text-gris text-[11px] font-mono leading-relaxed mt-1.5">⚠ Sin propósito activo en Sentido. Vincúlalo a un área o elimínalo: sin meta viva detrás, el plan deja de sostener la acción.</p>`
-      : `<p class="text-tenue text-[11px] leading-relaxed mt-1.5">Cada bloque cuelga de un porqué que de verdad te importe; si la meta te da igual, el plan no va a moverte.</p>`}
-
-    <label class="label !mb-1.5 mt-5 block">DURA</label>
-    <input class="input !w-[130px]" placeholder="ej. 60 min" value="${esc(b.dur||"")}" data-bloque="${b.id}" data-f="dur">
+      ? `<p class="text-gris text-[11px] font-mono leading-relaxed mt-1.5">⚠ Sin propósito activo en Sentido. Vincúlalo a un área o elimínalo: sin intención de meta viva detrás, el plan deja de sostener la acción.</p>`
+      : `<p class="text-tenue text-[11px] leading-relaxed mt-1.5">Cada plan cuelga de un porqué que de verdad te importe; si la meta te da igual, el plan no va a moverte.</p>`}
 
     <div class="flex gap-2 mt-8 justify-between items-center">
-      <button type="button" class="btn del-bloque-modal" data-id="${b.id}">Eliminar</button>
+      <button type="button" class="btn del-plan-modal" data-id="${p.id}">Eliminar</button>
       <button type="button" id="bloque-listo" class="btn btn-primary !px-7 !py-3">Listo</button>
     </div>`);
 }
-function abrirBloque(id, enfocar){
-  if(!data.bloques.find(x => x.id === id)) return;
-  renderBloqueModal(id);
+function abrirPlan(id, enfocar){
+  if(!data.planes.find(x => x.id === id)) return;
+  renderPlanModal(id);
   $("#bloque").removeClass("hidden");
   if(enfocar){
     setTimeout(function(){ $("#bloque-body").find("[data-f='conducta']").trigger("focus"); }, 60);
   }
 }
-function cerrarBloque(){
+function cerrarPlan(){
   $("#bloque").addClass("hidden");
-  render(); // refresca las filas-resumen de la semana con lo editado
+  render(); // refresca las filas-resumen de los planes con lo editado
 }
 
 // Bandeja de ideas capturadas (la captura en sí vive en el botón flotante +, disponible siempre).
@@ -695,7 +702,7 @@ function viewRevision(){
     <button class="btn btn-primary mt-3" id="add-revision">Guardar revisión</button>
   </div>
   <div class="card !bg-negro">
-    <p class="text-gris text-sm leading-relaxed">¿Fallaste un día? No pasa nada: perder una oportunidad no afecta la formación del hábito. Solo retoma el siguiente bloque.</p>
+    <p class="text-gris text-sm leading-relaxed">¿Fallaste un día? No pasa nada: perder una oportunidad no rompe nada mientras la intención de meta siga viva. Solo retoma el siguiente plan.</p>
   </div>`;
   $.each(data.revisiones, function(_, r){
     h += `
@@ -709,67 +716,37 @@ function viewRevision(){
   return h;
 }
 
-function viewMenuConfig(){
-  return `
-  <div class="card">
-    <p class="label">DURACIÓN POR DEFECTO DE BLOQUES</p>
-    <p class="text-gris text-sm mb-3 leading-relaxed">Se usa al crear un bloque nuevo; después puedes editar la duración de cada bloque en la Semana. Es una preferencia práctica: no hay una duración “científicamente óptima”.</p>
-    <input class="input !w-[160px]" value="${esc(data.config.durBloque)}" id="cfg-dur" placeholder="ej. 60 min">
-    <p id="cfg-status" class="text-tenue text-[11px] font-mono mt-2"></p>
-  </div>`;
-}
-
 function viewMenuAcerca(){
-  // Ordenados de mayor a menor solidez de la evidencia.
+  // Todo gira en torno a un solo concepto: la intención de implementación (Gollwitzer). Ordenados
+  // desde la base (la intención de meta) hacia sus tres usos y las condiciones que la sostienen.
   const estudios = [
-    ["Bloques como intención de implementación (si-entonces)",
-      "Vincular una situación exacta (cuándo/dónde) con una conducta concreta —no solo un área— es lo que dispara la acción (efecto confirmado en cientos de estudios; magnitud modesta tras corregir el sesgo de publicación). Tres condiciones lo hacen funcionar: la meta de fondo debe ser fuerte (si te da igual, el plan no mueve nada), tienes que estar comprometido con el plan, y sirve mientras esa meta siga activa. Por eso se reserva para lo difícil de iniciar; lo fácil se completa igual, con o sin plan. Ante la distracción, lo efectivo es ignorarla, no esforzarse más.",
+    ["Intención de meta: el porqué que sostiene el plan",
+      "Una intención de implementación no funciona sola: se apoya en una intención de meta fuerte y activa (“tengo la intención de lograr X”). Si la meta te da igual o ya la abandonaste, el plan si-entonces deja de mover nada. Por eso primero está el sentido (tu visión y tus áreas): escribir y releer lo que de verdad te importa mantiene viva esa intención de meta y amortigua el bajón (efecto pequeño pero replicado, d≈0.41).",
+      [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
+       ["Valores (afirmación) · Cohen & Sherman (2014)", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10779329/"],
+       ["Explicación (ES) · Greater Good, UC Berkeley", "https://ggia.berkeley.edu/es/practice/affirming_important_values"]]],
+    ["Intención de implementación para empezar: “cuando X → haré Y”",
+      "Vincular una señal anticipada (una hora o un evento) con una conducta concreta delega el inicio de la acción al ambiente: al encontrar la señal, arrancas casi sin deliberar. El efecto está confirmado en cientos de estudios (magnitud modesta tras corregir el sesgo de publicación). Se reserva para lo difícil de iniciar: lo fácil se completa igual, con o sin plan. Tres condiciones lo hacen funcionar: meta de fondo fuerte, compromiso con el plan, y que la meta siga activa.",
       [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
        ["Explicación (EN) · NCI", "https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions"],
        ["Explicación (ES) · Psicología y Mente", "https://psicologiaymente.com/coach/formula-pasar-accion-lograr-metas"]]],
-    ["Un solo foco por bloque",
-      "Cambiar entre tareas cuesta tiempo y genera errores, sobre todo en tareas complejas.",
-      [["Estudio: Rubinstein, Meyer & Evans (2001)", "https://psycnet.apa.org/doi/10.1037/0096-1523.27.4.763"],
-       ["Explicación (EN) · APA", "https://www.apa.org/topics/research/multitasking"],
-       ["Explicación (ES) · El Tiempo / NYT", "https://www.eltiempo.com/mundo/new-york-times-international-weekly/hacer-multiples-tareas-a-la-vez-tiene-un-impacto-negativo-en-nuestro-cerebro-expertos-responden-3329867"]]],
-    ["Recompensa inmediata al completar (aversión a la demora)",
-      "En el TDAH el circuito de recompensa responde menos a las recompensas y hay aversión a la demora: el valor de una recompensa lejana se descuenta mucho más rápido. Por eso marcar un bloque como “hecho” y ver el progreso en el momento —no dentro de una semana— es lo que sostiene la acción. La revisión semanal sigue, pero el avance se percibe ya.",
-      [["Estudio: Van Dessel et al. (2018) · JCPP", "https://acamh.onlinelibrary.wiley.com/doi/10.1111/jcpp.12868"],
-       ["Estudio: aversión a la demora (fenotipo ampliado)", "https://www.sciencedirect.com/science/article/abs/pii/S0028393208003837"]]],
-    ["Hacer el tiempo visible (ceguera al tiempo)",
-      "El TDAH altera la percepción del tiempo. Externalizar el tiempo —una vista de “hoy” con lo que va ahora y lo que sigue, cuánto falta y una cuenta atrás al empezar— descarga la memoria de trabajo y da la señal externa que dispara la transición. Las ayudas de memoria externas y las señales visibles son soporte de primera línea recomendado para el TDAH.",
-      [["Guía clínica: NICE NG87 (TDAH) · ayudas externas", "https://www.nice.org.uk/guidance/ng87"],
-       ["Revisión: memoria de trabajo en TDAH", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8334010/"]]],
-    ["Práctica corta y frecuente",
-      "El estudio espaciado supera a los maratones; uno de los hallazgos más replicados de la psicología (317 experimentos, evidencia desde 1885).",
-      [["Estudio: Cepeda et al. (2006)", "https://pubmed.ncbi.nlm.nih.gov/16719566/"],
-       ["Explicación (EN) · The Decision Lab", "https://thedecisionlab.com/biases/spacing-effect"],
-       ["Explicación (ES) · The Decision Lab", "https://thedecisionlab.com/es/biases/spacing-effect"]]],
-    ["Dormir importa",
-      "La calidad y duración del sueño predicen el autocontrol (meta-análisis de 61 estudios).",
-      [["Estudio: Guarana et al. (2021)", "https://www.sciencedirect.com/science/article/abs/pii/S108707922100099X"],
-       ["Explicación (EN) · TIME", "https://time.com/4236126/sleep-willpower/"],
-       ["Explicación (ES) · Nueva Tribuna", "https://www.nuevatribuna.es/articulo/sociedad/psicoecologia-falta-sueno-afecta-toma-decisiones-psicologia/20240108134042221670.html"]]],
-    ["Consistencia sin perfeccionismo",
-      "Un hábito tarda 18–254 días en automatizarse (mediana 66) y fallar un día no rompe el proceso.",
-      [["Estudio: Lally et al. (2010)", "https://onlinelibrary.wiley.com/doi/10.1002/ejsp.674"],
-       ["Explicación (EN) · BPS Research Digest", "https://www.bps.org.uk/research-digest/how-form-habit"],
-       ["Explicación (ES) · Psicología Cada Día", "https://psicologiacadadia.com/en-cuanto-tiempo-se-crea-un-habito/"]]],
-    ["Diseñar el sistema, no forzar la voluntad",
-      "Las personas con mejor autocontrol no resisten más tentaciones: dependen de hábitos y diseñan su entorno (6 estudios, N=2,274).",
+    ["Escudo anti-distracción: ignorar, no esforzarse más",
+      "El segundo uso de la intención de implementación es proteger una meta en curso de las distracciones. Lo efectivo es un plan “frío” que ignora el estímulo (“cuando surja la distracción, la ignoraré”), no uno que moviliza esfuerzo (“me esforzaré más”): con motivación alta, exigirse más genera sobremotivación y empeora el desempeño. De ahí el botón “¿Perdido?” y el foco a una sola cosa: cambiar de tarea cuesta tiempo y errores, sobre todo en lo complejo.",
+      [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
+       ["Un solo foco · Rubinstein, Meyer & Evans (2001)", "https://psycnet.apa.org/doi/10.1037/0096-1523.27.4.763"],
+       ["Explicación (EN) · APA", "https://www.apa.org/topics/research/multitasking"]]],
+    ["Cortar un hábito con un plan si-entonces",
+      "El tercer uso: cuando una señal dispara una respuesta habitual no deseada, un plan que vincula esa misma señal con una conducta nueva (“cuando aparezca X, haré Y en vez del hábito”) bloquea el arranque automático del hábito. Nombrar la respuesta que sustituyes es parte del mecanismo.",
+      [["Estudio: Gollwitzer & Sheeran (2006)", "https://www.sciencedirect.com/science/chapter/bookseries/abs/pii/S0065260106380021"],
+       ["Explicación (EN) · NCI", "https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions"]]],
+    ["Delegar en el ambiente, no forzar la voluntad",
+      "La idea central de la intención de implementación —“pasar el control de la conducta al ambiente”— coincide con lo que hacen quienes tienen mejor autocontrol: no resisten más tentaciones a fuerza de voluntad; dependen de rutinas y diseñan su entorno (6 estudios, N=2.274).",
       [["Estudio: Galla & Duckworth (2015)", "https://pmc.ncbi.nlm.nih.gov/articles/PMC4731333/"],
        ["Complemento: Duckworth, Gendler & Gross (2016)", "https://journals.sagepub.com/doi/10.1177/1745691615623247"],
-       ["Explicación (EN) · ScienceDaily", "https://www.sciencedaily.com/releases/2019/02/190214153023.htm"],
        ["Explicación (ES) · Knowable Magazine", "https://es.knowablemagazine.org/content/articulo/mente/2024/la-psicologia-del-autocontrol"]]],
-    ["Tu documento de sentido (ancla)",
-      "Escribir y releer tus valores amortigua la amenaza y el bajón, y mejora el desempeño (efecto pequeño pero replicado, d≈0.41).",
-      [["Revisión: Cohen & Sherman (2014) + meta-análisis educativo", "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10779329/"],
-       ["Explicación (EN) · Greater Good, UC Berkeley", "https://ggia.berkeley.edu/practice/affirming_important_values"],
-       ["Explicación (ES) · Greater Good, UC Berkeley", "https://ggia.berkeley.edu/es/practice/affirming_important_values"]]],
-    ["Revisión semanal con registro de progreso",
-      "Reflexionar por escrito sobre lo hecho mejora el desempeño futuro (+23% en experimento de campo), y percibir progreso es el mayor motor de la motivación.",
+    ["Revisión semanal: mantener viva la intención de meta",
+      "Como el plan solo funciona mientras la meta siga activa, la revisión semanal reengancha el porqué: reflexionar por escrito sobre lo hecho mejora el desempeño posterior (+23% en un experimento de campo) y percibir el propio progreso es el mayor motor de motivación.",
       [["Estudio: Di Stefano, Gino, Pisano & Staats", "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2414478"],
-       ["Explicación (EN) · HBS Working Knowledge", "https://www.library.hbs.edu/working-knowledge/reflecting-on-work-improves-job-performance"],
        ["Progress principle (EN) · HBR", "https://hbr.org/2011/05/the-power-of-small-wins"],
        ["Explicación (ES) · El principio del progreso, T. Amabile", "https://www.eexcellence.es/expertos/el-principio-del-progreso-utilizar-los-pequenos-logros-para-impulsar-el-cambio-por-teresa-amabile"]]]
   ];
@@ -790,13 +767,13 @@ function viewMenuAcerca(){
   return `
   <div class="card !bg-negro border-blanco">
     <p class="label !text-blanco">PROPÓSITO</p>
-    <p class="leading-relaxed">thefocusleo no es una app de productividad. No busca que hagas más: busca que estés enfocado, que lo que hagas tenga sentido para ti y que dediques tu energía a lo de mayor impacto. Menos, pero mejor. Cada funcionalidad existe solo si la ciencia la respalda.</p>
-    <p class="leading-relaxed mt-3">Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH): una cosa a la vez (la pantalla <span class="text-blanco">Ahora</span> muestra solo lo que va ahora o lo que sigue, en grande), el tiempo hecho visible con una cuenta atrás al empezar un bloque, recompensa inmediata al marcar un bloque como hecho, captura de ideas a un toque para no perder el foco, y cero mecánicas de culpa o rachas: fallar un día no rompe nada.</p>
+    <p class="leading-relaxed">thefocusleo no es una app de productividad ni una agenda. Gira en torno a un solo concepto: la <span class="text-blanco">intención de implementación</span> (Gollwitzer) — planes con la forma “cuando surja la señal X, haré la conducta Y”. No busca que hagas más ni que llenes horarios: busca que arranques lo que te cuesta, que protejas el foco y que lo que hagas tenga sentido para ti. Menos, pero mejor.</p>
+    <p class="leading-relaxed mt-3">El arco es el del propio concepto: primero la <span class="text-blanco">intención de meta</span> (tu visión y tus áreas: el porqué que sostiene todo), luego tus <span class="text-blanco">planes si-entonces</span> (vincular una señal anticipada —una hora o un evento— con una conducta concreta delega el inicio de la acción al ambiente), y por último proteger la meta en curso: ante la distracción, ignorarla y volver al plan (no esforzarse más), y cortar hábitos no deseados sustituyéndolos. Pensada para cuando cuesta sostener la atención (TDA/TDAH): una cosa a la vez, captura de ideas a un toque, y cero mecánicas de culpa o rachas.</p>
   </div>
   <p class="label !text-blanco mt-1">BASE CIENTÍFICA</p>
   ${lista}
   <div class="card !bg-negro">
-    <p class="text-gris text-sm leading-relaxed">Las duraciones concretas (90 min, horarios) son convenciones prácticas editables, no prescripciones científicas.</p>
+    <p class="text-gris text-sm leading-relaxed">La señal de cada plan (una hora o un evento) y los días son elecciones tuyas, no prescripciones: lo que importa es que reconozcas la señal cuando aparezca y estés comprometido con el plan.</p>
   </div>`;
 }
 
@@ -811,7 +788,7 @@ function viewMenuDatos(){
   </div>
   <div class="card">
     <p class="label">EXPORTAR</p>
-    <p class="text-gris text-sm mb-3 leading-relaxed">Descarga una copia de seguridad con todos tus datos (sentido, semana, ideas y revisiones) en un archivo JSON. Guárdalo en un lugar seguro.</p>
+    <p class="text-gris text-sm mb-3 leading-relaxed">Descarga una copia de seguridad con todos tus datos (sentido, planes, ideas y revisiones) en un archivo JSON. Guárdalo en un lugar seguro.</p>
     <button class="btn btn-primary" id="export-datos">Exportar copia</button>
   </div>
   <div class="card">
@@ -833,10 +810,14 @@ function viewMenuDatos(){
 // v2→v3: cada bloque suma `conducta` (la conducta concreta: qué/cómo exacto) y `lugar` (dónde).
 // El efecto de las intenciones de implementación viene de vincular una situación exacta con una
 // respuesta específica, no de un simple día+área. `normalizar` rellena ambos como "".
-// v3→v4: se añade `hechos` (array de {id, bloqueId, fecha}): registro de cada vez que un bloque se
-// marcó como hecho en una fecha concreta. Da recompensa inmediata al completar (el circuito de
-// recompensa en TDAH está hipoactivado y hay aversión a la demora), en vez de esperar a la
-// revisión semanal. `normalizar` lo rellena como [].
+// v3→v4: se añade `hechos` (array de {id, bloqueId, fecha}): registro de cada plan marcado como
+// hecho en una fecha concreta. `normalizar` lo rellena como [].
+// v4→v5: purificación al modelo de intención de implementación. `bloques` pasa a `planes`; la
+// `hora` HH:MM se generaliza a una señal `cuando` de texto libre (una hora o un evento); se retiran
+// `dur` (duración) y `config.durBloque` (el cronómetro se elimina: la II automatiza el inicio, no
+// la duración); cada plan suma `tipo` ("inicio"|"habito") y `enVezDe` (la respuesta habitual que
+// sustituye un plan de tipo hábito); `dia` admite `null` ("cualquier día"); en `hechos`, `bloqueId`
+// pasa a `planId`. `normalizar` aplica toda la transformación de forma idempotente.
 const MIGRATIONS = {
   1: function(store){
     if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
@@ -847,6 +828,10 @@ const MIGRATIONS = {
     return store;
   },
   3: function(store){
+    if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
+    return store;
+  },
+  4: function(store){
     if(store && store[KEY] && typeof store[KEY] === "object") store[KEY] = normalizar(store[KEY]);
     return store;
   }
@@ -912,11 +897,11 @@ function copiarAlPortapapeles(texto){
 function construirPromptIA(){
   const llmsURL = new URL("./llms.txt", location.href).href;
   const backup = construirBackup();
-  return 'Quiero personalizar mi app "Sistema Personal" (un sistema personal para ejecutar sin motivación).\n\n' +
+  return 'Quiero personalizar mi app "Sistema Personal" (un sistema de intenciones de implementación: "cuando surja la señal X, haré Y").\n\n' +
     'Primero lee este archivo para entender qué es la app y el formato EXACTO de sus datos:\n' +
     llmsURL + '\n\n' +
     'Abajo está mi sistema actual, exportado en JSON. Ayúdame a mejorarlo: conversemos sobre mi visión, ' +
-    'mis áreas, mis bloques semanales, mis ideas y mis revisiones (puedo cambiar mi esquema por completo). ' +
+    'mis áreas, mis planes si-entonces, mis ideas y mis revisiones (puedo cambiar mi esquema por completo). ' +
     'Cuando estemos de acuerdo, devuélveme UN ÚNICO bloque JSON válido para importar, con el mismo formato ' +
     '(campos app, schemaVersion, exportedAt y data) y el schemaVersion actual, listo para guardar como archivo ' +
     '.json e importar en la app.\n\n' +
@@ -956,7 +941,7 @@ function resumenStore(store){
   return {
     vision: s.vision && String(s.vision).trim() ? 1 : 0,
     areas: Array.isArray(s.areas) ? s.areas.length : 0,
-    bloques: Array.isArray(d.bloques) ? d.bloques.length : 0,
+    planes: Array.isArray(d.planes) ? d.planes.length : (Array.isArray(d.bloques) ? d.bloques.length : 0),
     ideas: Array.isArray(d.ideas) ? d.ideas.length : 0,
     revisiones: Array.isArray(d.revisiones) ? d.revisiones.length : 0,
     otras: otras
@@ -999,7 +984,7 @@ function importData(ev){
       <p class="text-sm mb-1">La copia contiene:</p>
       <p class="font-mono text-xs text-gris whitespace-pre-wrap">· visión: ${r.vision ? "sí" : "no"}
 · áreas: ${r.areas}
-· bloques: ${r.bloques}
+· planes: ${r.planes}
 · ideas: ${r.ideas}
 · revisiones: ${r.revisiones}${extra}</p>
       <p class="text-sm mt-3 mb-2">¿Cómo quieres aplicarla?</p>
@@ -1034,7 +1019,7 @@ function fusionarPrincipal(actual, entrante){
   const eSent = (entrante && entrante.sentido) || {};
   if(typeof eSent.vision === "string" && eSent.vision.trim()) out.sentido.vision = eSent.vision;
   out.sentido.areas = fusionarPorId(out.sentido.areas, eSent.areas);
-  out.bloques = fusionarPorId(out.bloques, entrante && entrante.bloques);
+  out.planes = fusionarPorId(out.planes, entrante && entrante.planes);
   out.ideas = fusionarPorId(out.ideas, entrante && entrante.ideas);
   out.revisiones = fusionarPorId(out.revisiones, entrante && entrante.revisiones);
   return out;
@@ -1132,52 +1117,27 @@ function renderMenuTabs(){
   });
 }
 function renderMenu(){
-  const views = { config: viewMenuConfig, datos: viewMenuDatos, acerca: viewMenuAcerca };
-  $("#menu-body").html(views[menuTab]());
+  const views = { datos: viewMenuDatos, acerca: viewMenuAcerca };
+  $("#menu-body").html((views[menuTab] || viewMenuDatos)());
 }
 
-/* ---------- Temporizador de foco ---------- */
-// Hace el tiempo concreto (cuenta atrás) y baja la fricción de inicio: un botón "Empezar" abre un
-// solo bloque a pantalla completa. No es una duración prescrita, solo la del bloque; se puede
-// pausar y no obliga a nada al llegar a cero.
-let foco = { id: null, restante: 0, corriendo: false, tick: null };
+/* ---------- Foco ---------- */
+// Aísla un solo plan a pantalla completa (una cosa a la vez) y muestra el escudo anti-distracción.
+// No cronometra: una intención de implementación automatiza el INICIO de la acción, no su duración.
+let foco = { id: null };
 
-function fmtMMSS(seg){
-  seg = Math.max(0, Math.round(seg));
-  return `${String(Math.floor(seg/60)).padStart(2,"0")}:${String(seg%60).padStart(2,"0")}`;
-}
-function pintarFoco(){
-  $("#foco-reloj").text(fmtMMSS(foco.restante));
-  $("#foco-pausa").text(foco.corriendo ? "Pausar" : "Reanudar");
-  if(foco.restante <= 0) $("#foco-estado").text("TIEMPO CUMPLIDO · SIGUE SI QUIERES O CIÉRRALO");
-  else $("#foco-estado").text(foco.corriendo ? "EN FOCO" : "EN PAUSA");
-}
-function tickFoco(){
-  if(!foco.corriendo) return;
-  foco.restante -= 1;
-  if(foco.restante <= 0){ foco.restante = 0; foco.corriendo = false; clearInterval(foco.tick); foco.tick = null; }
-  pintarFoco();
-}
-// minOverride (opcional): arranca con esa cantidad de minutos en vez de la duración del bloque.
-// Se usa para "Solo 5 min" (romper la barrera de inicio: comprometerse a un arranque mínimo).
-function abrirFoco(bloqueId, minOverride){
-  const b = data.bloques.find(x => x.id === bloqueId);
-  if(!b) return;
-  clearInterval(foco.tick);
-  foco.id = bloqueId;
-  const mins = (minOverride && parseInt(minOverride, 10) > 0) ? parseInt(minOverride, 10) : parseMin(b.dur);
-  foco.restante = mins * 60;
-  foco.corriendo = true;
-  $("#foco-conducta").text((b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "Tu bloque"));
-  $("#foco-area").text(b.area ? "sirve a: " + b.area : "");
-  pintarFoco();
-  foco.tick = setInterval(tickFoco, 1000);
+function abrirFoco(planId){
+  const p = data.planes.find(x => x.id === planId);
+  if(!p) return;
+  foco.id = planId;
+  const enVez = p.tipo === "habito" && p.enVezDe && p.enVezDe.trim() ? "  ·  en vez de " + p.enVezDe : "";
+  $("#foco-cuando").text(p.cuando && p.cuando.trim() ? "CUANDO " + p.cuando.trim().toUpperCase() : "");
+  $("#foco-conducta").text(((p.conducta && p.conducta.trim()) ? p.conducta : (p.area || "Tu plan")) + enVez);
+  $("#foco-area").text(p.area ? "sirve a: " + p.area : "");
   $("#foco").removeClass("hidden");
 }
 function cerrarFoco(){
-  clearInterval(foco.tick);
-  foco.tick = null;
-  foco.corriendo = false;
+  foco.id = null;
   $("#foco").addClass("hidden");
 }
 
@@ -1215,18 +1175,12 @@ $(function(){
     save(); render(); window.scrollTo(0, 0);
   });
 
-  // Ahora (ejecución): empezar en foco (o "Solo 5 min" vía data-min), marcar hecho / deshacer.
-  $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id"), $(this).data("min")); });
+  // Ahora (ejecución): empezar en foco, marcar hecho / deshacer.
+  $m.on("click", ".hoy-empezar", function(){ abrirFoco($(this).data("id")); });
   $m.on("click", ".hoy-hecho", function(){ marcarHecho($(this).data("id"), hoyISO()); render(); });
   $m.on("click", ".hoy-deshacer", function(){ desmarcarHecho($(this).data("id"), hoyISO()); render(); });
 
-  // Overlay temporizador de foco
-  $("#foco-pausa").on("click", function(){
-    if(foco.restante <= 0) return;
-    foco.corriendo = !foco.corriendo;
-    if(foco.corriendo && !foco.tick) foco.tick = setInterval(tickFoco, 1000);
-    pintarFoco();
-  });
+  // Overlay de foco (sin cronómetro)
   $("#foco-salir").on("click", cerrarFoco);
   $("#foco-hecho").on("click", function(){
     if(foco.id) marcarHecho(foco.id, hoyISO());
@@ -1283,37 +1237,43 @@ $(function(){
     save(); render();
   });
 
-  // Semana: el resumen solo navega. Editar un bloque abre el modal enfocado; crear uno lo abre
-  // ya, con la conducta enfocada, para ir directo a decidir (sin "creé un bloque vacío, ¿ahora
-  // dónde están sus campos?").
-  $m.on("click", ".edit-bloque", function(){ abrirBloque($(this).data("id")); });
-  $m.on("click", ".add-bloque", function(){
+  // Planes: el resumen solo navega. Editar un plan abre el modal enfocado; crear uno lo abre ya,
+  // con la conducta enfocada, para ir directo a decidir (sin "creé un plan vacío, ¿ahora dónde
+  // están sus campos?"). El data-dia "" significa "cualquier día" (dia null).
+  $m.on("click", ".edit-plan", function(){ abrirPlan($(this).data("id")); });
+  $m.on("click", ".add-plan", function(){
     const id = uid();
-    data.bloques.push({id, dia:$(this).data("dia"), hora:"19:00", lugar:"", conducta:"", area:"", dur:data.config.durBloque || DUR_DEFECTO});
-    save(); render(); abrirBloque(id, true);
+    const dv = $(this).data("dia");
+    const dia = (dv === "" || dv === undefined || dv === null) ? null : parseInt(dv, 10);
+    data.planes.push({id, dia, cuando:"", lugar:"", conducta:"", area:"", tipo:"inicio", enVezDe:""});
+    save(); render(); abrirPlan(id, true);
   });
 
-  // Modal de bloque (fuera de #main → handlers propios). Guarda en vivo con los mismos
-  // data-bloque/data-f. El <select> re-renderiza el modal para reflejar el estado huérfano al
-  // instante. Eliminar vive aquí, tras un toque explícito, no en el resumen (evita borrados por
-  // toque accidental).
+  // Modal de plan (fuera de #main → handlers propios). Guarda en vivo con los data-plan/data-f.
+  // Los <select> (tipo, día, área) re-renderizan el modal para reflejar la frase y el estado
+  // huérfano al instante. Eliminar vive aquí, tras un toque explícito, no en el resumen (evita
+  // borrados por toque accidental).
   const $bm = $("#bloque-body");
-  $bm.on("input", "[data-bloque]:not(select)", function(){
-    const b = data.bloques.find(x => x.id === $(this).data("bloque"));
-    if(b){ b[$(this).data("f")] = this.value; save(); }
+  $bm.on("input", "[data-plan]:not(select)", function(){
+    const p = data.planes.find(x => x.id === $(this).data("plan"));
+    if(p){ p[$(this).data("f")] = this.value; save(); }
   });
-  $bm.on("change", "select[data-bloque]", function(){
-    const b = data.bloques.find(x => x.id === $(this).data("bloque"));
-    if(b){ b[$(this).data("f")] = this.value; save(); renderBloqueModal(b.id); }
+  $bm.on("change", "select[data-plan]", function(){
+    const p = data.planes.find(x => x.id === $(this).data("plan"));
+    if(!p) return;
+    const f = $(this).data("f");
+    if(f === "dia"){ p.dia = this.value === "" ? null : parseInt(this.value, 10); }
+    else { p[f] = this.value; }
+    save(); renderPlanModal(p.id);
   });
-  $bm.on("click", ".del-bloque-modal", function(){
-    data.bloques = data.bloques.filter(x => x.id !== $(this).data("id"));
-    save(); cerrarBloque();
+  $bm.on("click", ".del-plan-modal", function(){
+    data.planes = data.planes.filter(x => x.id !== $(this).data("id"));
+    save(); cerrarPlan();
   });
-  $bm.on("click", "#bloque-listo", cerrarBloque);
-  $("#bloque-cerrar, #bloque-backdrop").on("click", cerrarBloque);
+  $bm.on("click", "#bloque-listo", cerrarPlan);
+  $("#bloque-cerrar, #bloque-backdrop").on("click", cerrarPlan);
   $(document).on("keydown", function(e){
-    if(e.key === "Escape" && !$("#bloque").hasClass("hidden")) cerrarBloque();
+    if(e.key === "Escape" && !$("#bloque").hasClass("hidden")) cerrarPlan();
   });
 
   // Ideas (la captura se hace desde el botón flotante +; aquí solo se eliminan de la bandeja)
@@ -1345,14 +1305,6 @@ $(function(){
     renderMenuTabs(); renderMenu();
   });
 
-  // Configuración
-  $menu.on("input", "#cfg-dur", function(){
-    const v = this.value.trim();
-    data.config.durBloque = v || DUR_DEFECTO;
-    save();
-    $("#cfg-status").text("✓ Guardado");
-  });
-
   // Datos (export / import)
   $menu.on("click", "#prompt-ia", copiarPromptIA);
   $menu.on("click", "#export-datos", exportData);
@@ -1378,20 +1330,21 @@ $(function(){
         </div>`);
     });
     const hoy = new Date().getDay();
-    const bloquesHoy = data.bloques.filter(b => b.dia === hoy).sort((a,b) => a.hora.localeCompare(b.hora));
+    const planesHoy = data.planes.filter(p => aplicaHoy(p, hoy));
     const $h = $("#ancla-hoy").empty();
-    if(bloquesHoy.length){
+    if(planesHoy.length){
       let items = "";
-      $.each(bloquesHoy, function(_, b){
-        const que = (b.conducta && b.conducta.trim()) ? b.conducta : (b.area || "—");
-        items += `<li class="font-mono text-sm"><span class="text-blanco">${esc(b.hora)}</span> <span class="text-gris">→ ${esc(que)}${b.dur ? " · " + esc(b.dur) : ""}</span></li>`;
+      $.each(planesHoy, function(_, p){
+        const que = (p.conducta && p.conducta.trim()) ? p.conducta : (p.area || "—");
+        const enVez = p.tipo === "habito" && p.enVezDe && p.enVezDe.trim() ? " · en vez de " + p.enVezDe : "";
+        items += `<li class="font-mono text-sm"><span class="text-blanco">cuando ${esc(señalDe(p))}</span> <span class="text-gris">→ ${esc(que)}${esc(enVez)}</span></li>`;
       });
       $h.html(`
         <p class="font-mono text-xs tracking-widest text-blanco border-t border-linea pt-4">LA DECISIÓN YA ESTÁ TOMADA — HOY, ${DIAS[hoy].toUpperCase()}</p>
         <ul class="mt-3 space-y-1">${items}</ul>
-        <p class="text-gris text-sm mt-3">No la negocies ahora: vuelve al bloque que decidiste.</p>`);
+        <p class="text-gris text-sm mt-3">No la negocies ahora: vuelve al plan que decidiste.</p>`);
     } else {
-      $h.html(`<p class="text-gris text-sm border-t border-linea pt-4">Hoy no tienes bloques. La decisión sobre qué hacer ya vive en tu Semana: no la reinventes ahora.</p>`);
+      $h.html(`<p class="text-gris text-sm border-t border-linea pt-4">Hoy no tienes planes. La decisión sobre qué hacer ya vive en tus Planes: no la reinventes ahora.</p>`);
     }
     $("#ancla").removeClass("hidden");
   });
