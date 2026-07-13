@@ -1,16 +1,16 @@
 # Sistema Personal — PWA
 
-App instalable en tu celular, **diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH)**. Tiene **dos modos con diseños distintos, switcheables** desde el header:
+App instalable en tu celular, construida en torno a **un solo concepto**: la **intención de implementación** (Gollwitzer) — planes con la forma *"cuando surja la señal X, haré la conducta Y"*. No es una app de productividad ni una agenda por reloj: busca que **arranques lo que te cuesta iniciar**, **protejas el foco** y que lo que hagas **tenga sentido**. Pensada para cuando cuesta sostener la atención (TDA/TDAH). Tiene **dos modos con diseños distintos, switcheables** desde el header:
 
-- **Construir** (fundación, para quien arranca de cero): un **asistente por pasos** calmado, sin presión de tiempo, para generar primero el **sentido** y el **plan** — Visión → Áreas (tus porqués) → Primeros bloques. Es la base sobre la que actuar tiene sentido. Los usuarios nuevos arrancan aquí.
+- **Construir** (fundación, para quien arranca de cero): un **asistente por pasos** calmado, sin presión de tiempo, para generar primero el **sentido** y el **plan** — Visión → Áreas (tus porqués = intenciones de meta) → Primer plan si-entonces. Es la base sobre la que actuar tiene sentido. Los usuarios nuevos arrancan aquí.
 - **Actuar** (ejecución del día a día): arquitectura **de ejecución primero**, con tres modos en una **navegación inferior** (zona del pulgar):
-  - **Ahora** (pantalla por defecto): muestra **una sola cosa** en grande —el bloque que va *ahora* o el que *sigue*, con el reloj visible—. Botones **Empezar** (temporizador de foco con cuenta atrás), **Solo 5 min** (arranque mínimo para romper la barrera de inicio) y **Hecho** (marca el bloque completado con feedback inmediato).
-  - **Plan**: un solo lugar para decidir, con secciones colapsables — tu semana de bloques (conducta concreta + propósito activo al que sirve), tu porqué (documento de sentido) y la bandeja de ideas capturadas.
+  - **Ahora** (pantalla por defecto): reúne tus planes si-entonces de hoy y destaca **uno** en grande —"cuando [señal] → [conducta]"—. Sin agenda por reloj ni cuenta atrás: lo que dispara la acción es encontrar la señal. Botones **Empezar** (foco a pantalla completa, una cosa a la vez, **sin cronómetro**) y **Hecho** (marca el plan cumplido, se puede deshacer).
+  - **Plan**: un solo lugar para decidir, con secciones colapsables — tus planes si-entonces (agrupados por día, más un grupo "cualquier día · por señal"; dos tipos: **para empezar** algo difícil de iniciar y **para cortar un hábito** no deseado), tu porqué (documento de sentido) y la bandeja de ideas capturadas.
   - **Avance**: una tira visual de tus últimos 7 días (lo que ya hiciste, sin rachas ni culpa) más la revisión semanal.
 
-Un **botón flotante "+"** captura ideas desde cualquier pantalla (a un toque, para no perder el foco), y el botón **"¿Perdido?"** abre el ancla que, ante la distracción, recuerda ignorarla y volver al bloque (no esforzarse más). Funciona offline y guarda tus datos en el dispositivo (localStorage).
+Un **botón flotante "+"** captura ideas desde cualquier pantalla (a un toque, para no perder el foco), y el botón **"¿Perdido?"** abre el ancla que, ante la distracción, recuerda ignorarla y volver al plan (no esforzarse más) — la intención de implementación "fría" del capítulo sobre proteger la meta en curso. Funciona offline y guarda tus datos en el dispositivo (localStorage).
 
-Los principios detrás del diseño (tiempo visible contra la ceguera al tiempo, recompensa inmediata al completar, una cosa a la vez, arranque mínimo, captura ambiental, y cero mecánicas de culpa o rachas) están respaldados por evidencia; los estudios están enlazados dentro de la app, en **Menú → Acerca**.
+El arco de la app es el del propio concepto (intención de meta → plan si-entonces para empezar → proteger la meta: ignorar distracciones y cortar hábitos), y cada pieza está respaldada por evidencia; los estudios están enlazados dentro de la app, en **Menú → Acerca**.
 
 ## Archivos
 - `index.html` — la app completa (Tailwind con tema custom blanco/negro + jQuery, vía CDN, sin build)

@@ -1,34 +1,33 @@
 # Sistema Personal (thefocusleo)
 
-> App web personal cuyo propósito NO es la productividad (hacer más), sino el **enfoque** (una cosa a la vez), el **sentido** (que lo que hago conecte con mis valores) y el **impacto** (hacer lo esencial, no lo máximo) — en la línea del esencialismo. Menos, pero mejor. Cada funcionalidad existe solo si hay evidencia científica que la respalde; los textos evitan afirmaciones motivacionales que suenen a dato sin serlo. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
+> App web personal construida en torno a **un solo concepto**: la **intención de implementación** (Gollwitzer) — planes con la forma *"cuando surja la señal X, haré la conducta Y"*. NO es una app de productividad ni una agenda por reloj: no busca que hagas más ni que llenes horarios, sino que **arranques lo que te cuesta iniciar**, **protejas el foco** y que lo que hagas **tenga sentido** para ti. Menos, pero mejor. Cada funcionalidad existe solo si hay evidencia que la respalde; los textos evitan afirmaciones que suenen a dato sin serlo. Es una PWA estática (un solo `index.html`), funciona offline y guarda todo en el dispositivo del usuario; no hay servidor ni cuentas.
 >
-> Está diseñada pensando en cómo funciona la atención cuando cuesta sostenerla (TDA/TDAH), aplicando principios con respaldo clínico: **hacer el tiempo visible** contra la ceguera al tiempo (la pantalla *Ahora* muestra solo lo que va ahora o lo que sigue, en grande, y hay un temporizador de foco con cuenta atrás al empezar un bloque), **recompensa inmediata** al marcar un bloque como hecho (el circuito de recompensa en TDAH está hipoactivado y hay aversión a la demora), **una cosa a la vez**, **captura de ideas a un toque** para no perder el foco, y **cero mecánicas de culpa o rachas** (fallar un día no rompe nada).
+> El arco de la app es el del propio concepto: (1) la **intención de meta** —tu visión y tus áreas, el porqué que sostiene todo; una intención de implementación no funciona si la meta de fondo es débil o se abandonó—; (2) tus **planes si-entonces**, que vinculan una **señal anticipada** (una hora *o* un evento, texto libre) con una **conducta concreta**, delegando el inicio de la acción al ambiente; y (3) **proteger la meta en curso**: ante la distracción, ignorarla y volver al plan (no esforzarse más), y **cortar hábitos no deseados** sustituyéndolos. Pensada para cuando cuesta sostener la atención (TDA/TDAH): **una cosa a la vez**, **captura de ideas a un toque**, y **cero mecánicas de culpa o rachas** (fallar un día no rompe nada mientras la meta siga viva). No hay cronómetro ni duraciones: la intención de implementación automatiza el **inicio** de la acción, no su duración.
 
 ## Para qué la uso
 
 La app tiene **dos modos de nivel superior con diseños distintos, switcheables** desde un selector en el header (Construir · Actuar). La preferencia se guarda en `config.modoApp`:
 
-- **Construir** (fundación): para quien **arranca de cero**. El foco no está en el "ahora" sino en **generar sentido y plan**, en un **asistente por pasos** calmado y sin presión de tiempo (sin barra inferior, sin captura, sin cronómetro): **Paso 1 Visión** (qué persona estás construyendo), **Paso 2 Áreas** (tus porqués, el ancla), **Paso 3 Primeros bloques** (aterrizar un porqué en una conducta concreta). Al terminar ("Listo, quiero actuar") pasa a modo Actuar. Es la base: primero el sentido, luego la acción. Un usuario nuevo (sin datos guardados) arranca aquí; se puede volver cuando se quiera.
+- **Construir** (fundación): para quien **arranca de cero**. El foco no está en el "ahora" sino en **generar sentido y plan**, en un **asistente por pasos** calmado y sin presión de tiempo (sin barra inferior, sin captura): **Paso 1 Visión** (qué persona estás construyendo), **Paso 2 Áreas** (tus porqués = intenciones de meta, el ancla), **Paso 3 Primer plan si-entonces** (aterrizar un porqué en "cuando [señal] → haré [conducta concreta]"). Al terminar ("Listo, quiero actuar") pasa a modo Actuar. Es la base: primero el sentido, luego la acción. Un usuario nuevo (sin datos guardados) arranca aquí; se puede volver cuando se quiera.
 - **Actuar** (ejecución): el sistema en marcha del día a día. Arquitectura **de ejecución primero**: **tres modos** en una **navegación inferior** (zona del pulgar) —**Ahora · Plan · Avance**—, un **botón flotante "+"** para capturar ideas desde cualquier pantalla, y un botón **"¿Perdido?"** (el ancla). Un usuario que ya tiene un sistema arranca aquí.
 
-El **menú hamburguesa** del header (Configuración, Datos, Acerca) está disponible en ambos modos.
+El **menú hamburguesa** del header (Datos, Acerca) está disponible en ambos modos.
 
 Dentro de **Actuar**, el modo por defecto al abrir es **Ahora**:
 
-- **Ahora**: la pantalla-hogar de ejecución (no de edición). Se abre aquí. Muestra **una sola cosa** en grande —el bloque que va *ahora* o el que *sigue* (y cuánto falta)—, con el reloj visible, contra la ceguera al tiempo. Puedo pulsar **Empezar** (abre un temporizador de foco a pantalla completa con cuenta atrás, una sola conducta y nada más), **Solo 5 min** (arranca el foco con 5 minutos: romper la barrera de inicio comprometiéndome a un arranque mínimo) o **Hecho** (marca el bloque completado *en el momento*, con feedback inmediato; se puede deshacer). Debajo, el resto del día. Planificar bloques vive en Plan.
+- **Ahora**: la pantalla-hogar de ejecución (no de edición). Se abre aquí. Reúne los **planes si-entonces de hoy** —los de este día más los de "cualquier día" (que se disparan por su señal)— y destaca **uno** en grande: el primero sin hacer, mostrado como "cuando [señal] → [conducta]". No hay agenda por reloj ni cuenta atrás; lo que dispara la acción es **encontrar la señal**. Puedo pulsar **Empezar** (abre el foco a pantalla completa: una sola conducta, el escudo anti-distracción a la vista, y **sin cronómetro**) o **Hecho** (marca el plan cumplido *en el momento*; se puede deshacer). Debajo, el resto de los planes de hoy. Planificar los planes vive en Plan.
 - **Plan**: un solo lugar para decidir, con secciones colapsables (divulgación progresiva) para no abrumar:
-  - **Tu semana · bloques** (abierta por defecto): organizo la semana en bloques por día con el formato "si es [día] a las [hora], en [lugar] → haré [conducta concreta]" (implementation intentions). Cada bloque especifica la situación exacta (cuándo/dónde) y la **conducta concreta** que ejecutaré —no basta un área vaga con horario— y se vincula a un **propósito activo de Sentido** (si el área ya no existe, el bloque se marca como huérfano para relinkarlo o borrarlo). Los bloques se reservan para lo difícil de iniciar; lo fácil se completa igual con o sin plan. Un solo foco por bloque.
-  - **Tu porqué · Sentido**: mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y las "áreas", cada una con un nombre y un propósito de una frase que me recuerda la decisión que ya tomé. Es el ancla contra el desenfoque (*values affirmation*).
+  - **Tus planes si-entonces** (abierta por defecto): mis intenciones de implementación agrupadas por día, más un grupo **"cualquier día · por señal"** para los que no dependen de una fecha fija. Cada plan tiene el formato "cuando [señal: una hora o un evento], en [lugar] → haré [conducta concreta]". Hay dos **tipos**: `inicio` (para arrancar algo que cuesta iniciar) y `habito` (para cortar un hábito no deseado: "cuando aparezca [señal], haré [conducta] **en vez de** [respuesta habitual]"). Cada plan se vincula a un **propósito activo de Sentido** (si el área ya no existe, el plan se marca como huérfano para relinkarlo o borrarlo). Los planes se reservan para lo difícil de iniciar; lo fácil se completa igual con o sin plan. Un solo foco por plan.
+  - **Tu porqué · Sentido**: mi visión general (qué persona estoy construyendo, qué vida conecta mis proyectos, estudio, lectura e ideas) y las "áreas", cada una con un nombre y un propósito de una frase = mis **intenciones de meta**. Es el ancla contra el desenfoque (*values affirmation*) y lo que mantiene viva la meta de la que cuelgan los planes.
   - **Ideas capturadas**: la bandeja de ideas que capturé con el botón "+" (para sacarlas de la cabeza sin perder el foco); ya las trabajaré en su momento.
-- **Avance**: ver el progreso (motivación), no auditarse. Arriba, una **tira visual de los últimos 7 días** (cuántos bloques marqué como hechos cada día, derivado de `hechos`) y el total —no es una meta ni una racha; un día en blanco no rompe nada—. Debajo, la **revisión semanal** donde registro qué progreso hice en trabajo que importa, qué avancé, qué sigue y si releí mi documento de sentido, con su historial (percibir el propio progreso es el mayor motor de motivación; la reflexión escrita mejora el desempeño posterior).
+- **Avance**: ver el progreso (motivación), no auditarse. Arriba, una **tira visual de los últimos 7 días** (cuántos planes marqué como cumplidos cada día, derivado de `hechos`) y el total —no es una meta ni una racha; un día en blanco no rompe nada—. Debajo, la **revisión semanal** donde registro qué progreso hice, qué avancé, qué sigue y si releí mi documento de sentido, con su historial (reengancha la intención de meta, de la que depende que los planes sigan funcionando).
 
 El menú hamburguesa contiene:
 
-- **Configuración**: preferencias del usuario. Hoy: duración por defecto de un bloque nuevo (editable; es una convención práctica, no una duración "óptima").
 - **Datos**: exportar e importar toda mi información como archivo JSON, y copiar un prompt para personalizar con IA.
-- **Acerca**: el propósito de la app y su base científica (lista de estudios con enlaces al paper y a una explicación amigable).
+- **Acerca**: el propósito de la app y su base científica, toda centrada en el marco de Gollwitzer (intención de meta → intención de implementación para empezar → escudo anti-distracción → cortar hábitos), con enlaces al paper y a una explicación amigable.
 
-También hay un botón "¿Perdido?" en el header que abre un overlay a pantalla completa (el ancla). Su mensaje principal es una intención de implementación "fría": **"cuando surja la distracción, la ignoro y vuelvo al bloque"** (no moviliza esfuerzo: con motivación alta, "esfuérzate más" genera sobremotivación y empeora el desempeño; ignorar la distracción es lo efectivo). Debajo muestra la visión, los propósitos de cada área y los bloques de hoy como recordatorio de que la decisión ya está tomada.
+También hay un botón "¿Perdido?" en el header que abre un overlay a pantalla completa (el ancla). Su mensaje principal es una intención de implementación "fría": **"cuando surja la distracción, la ignoro y vuelvo al plan"** (no moviliza esfuerzo: con motivación alta, "esfuérzate más" genera sobremotivación y empeora el desempeño; ignorar la distracción es lo efectivo). Debajo muestra la visión, los propósitos de cada área y los planes de hoy como recordatorio de que la decisión ya está tomada.
 
 ## Personalizar mi sistema con una IA (uso principal)
 
@@ -36,7 +35,7 @@ La app está pensada para trabajarse con una IA. El flujo previsto es:
 
 1. En el **menú hamburguesa → Datos**, pulso **"Copiar prompt para IA"**. Eso copia al portapapeles un prompt que incluye (a) el enlace a este mismo `llms.txt` y (b) mi sistema actual exportado como JSON.
 2. Pego ese prompt en cualquier IA con acceso a internet (para que pueda leer este archivo y conocer el formato exacto).
-3. Converso las mejoras que quiera: reescribir mi visión, reorganizar mis áreas, rediseñar mis bloques semanales, depurar ideas, replantear mis revisiones. Mi esquema es mío: puedo rehacer por completo mi sistema.
+3. Converso las mejoras que quiera: reescribir mi visión, reorganizar mis áreas, rediseñar mis planes si-entonces, depurar ideas, replantear mis revisiones. Mi esquema es mío: puedo rehacer por completo mi sistema.
 4. Le pido a la IA que me entregue **un único JSON válido para importar** (el formato de export descrito en `## Datos`). Lo guardo como archivo `.json`.
 5. Vuelvo al **menú → Datos → Importar**, elijo el archivo y aplico **Reemplazar** o **Fusionar**.
 
@@ -46,8 +45,8 @@ La app está pensada para trabajarse con una IA. El flujo previsto es:
 
 - Modificar o arreglar funcionalidades existentes (pestañas, campos, comportamiento).
 - Agregar nuevas secciones o pestañas manteniendo el estilo actual.
-- Interpretar o transformar un archivo de export (resumir mis ideas, analizar mis revisiones, reformatear mis bloques semanales, etc.).
-- Generar datos válidos para importar (por ejemplo, proponer una semana de bloques o un conjunto de áreas y entregarlos en el formato exacto de import).
+- Interpretar o transformar un archivo de export (resumir mis ideas, analizar mis revisiones, reformatear mis planes si-entonces, etc.).
+- Generar datos válidos para importar (por ejemplo, proponer un conjunto de planes si-entonces o de áreas y entregarlos en el formato exacto de import).
 
 ## Reglas al modificar la app
 
@@ -68,28 +67,27 @@ Actualmente la app usa **una sola clave**:
 
 #### `sistema-personal-v1`
 
-Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 4):
+Guarda todo el estado de la app como un único objeto JSON (string). Esquema (schemaVersion 5):
 
 ```json
 {
-  "config": {
-    "durBloque": "string libre, ej. '60 min' — duración por defecto al crear un bloque"
-  },
+  "config": {},
   "sentido": {
     "vision": "string — texto libre con la visión general",
     "areas": [
       { "id": "string único", "nombre": "string", "proposito": "string" }
     ]
   },
-  "bloques": [
+  "planes": [
     {
       "id": "string único",
       "dia": 0,
-      "hora": "HH:MM (24h)",
+      "cuando": "string libre — la señal que dispara el plan: una hora ('07:00') o un evento ('al llegar de trabajar')",
       "lugar": "string libre (dónde) — opcional, puede ser ''",
       "conducta": "string — la conducta concreta y exacta a ejecutar (qué/cómo)",
       "area": "string — debe coincidir con el nombre de un área de sentido (propósito activo)",
-      "dur": "string libre, ej. '60 min'"
+      "tipo": "'inicio' | 'habito'",
+      "enVezDe": "string — solo para tipo 'habito': la respuesta habitual que se sustituye; '' en tipo 'inicio'"
     }
   ],
   "ideas": [
@@ -106,31 +104,34 @@ Guarda todo el estado de la app como un único objeto JSON (string). Esquema (sc
     }
   ],
   "hechos": [
-    { "id": "string único", "bloqueId": "id de un bloque", "fecha": "YYYY-MM-DD" }
+    { "id": "string único", "planId": "id de un plan", "fecha": "YYYY-MM-DD" }
   ]
 }
 ```
 
 Notas de campos:
 
-- `config.durBloque`: preferencia (string libre) usada como duración por defecto al crear un bloque nuevo. Es una convención práctica editable, no una duración prescrita.
+- `config`: preferencias del usuario. Ya no guarda duración de plan (el cronómetro se retiró). Puede contener `config.modoApp` (ver abajo).
 - `config.modoApp`: preferencia de interfaz opcional, `"construir"` o `"actuar"`, que recuerda en qué modo mostrar la app. No es contenido versionado ni afecta al esquema: viaja en el backup pero cualquier versión que no la conozca la ignora sin romper nada. Si falta o es inválida, la app la deduce (usuario nuevo sin datos → `"construir"`; usuario con datos → `"actuar"`).
-- `dia`: número **0–6 según `Date.getDay()`**, es decir `0 = domingo`, `1 = lunes`, … `6 = sábado`. En la vista la semana se muestra empezando en lunes.
-- `conducta`: la conducta concreta que se ejecutará (qué/cómo exacto), no un área vaga. Es el corazón de la intención de implementación: el efecto viene de vincular una situación con una respuesta específica. En backups v1/v2 (que no lo tenían) la migración lo rellena como `""`.
-- `lugar`: dónde ocurre el bloque (opcional). Completa el "cuándo/dónde" de la situación. La migración lo rellena como `""`.
-- `area`: debe corresponder al `nombre` de un área de `sentido` (el propósito activo al que sirve el bloque). Si no coincide con ningún área viva, la UI marca el bloque como **huérfano** (meta débil o abandonada) para relinkarlo o eliminarlo. No conviertas ideas en bloques sin este vínculo.
+- Cada elemento de `planes` es una **intención de implementación** ("cuando surja la señal X, haré la conducta Y").
+- `dia`: número **0–6 según `Date.getDay()`** (`0 = domingo`, `1 = lunes`, … `6 = sábado`), **o `null`** para un plan de "cualquier día" que se dispara por su señal sin fecha fija. En la vista la semana se muestra empezando en lunes, con un grupo final para los de `dia: null`.
+- `cuando`: la **señal** anticipada que dispara el plan, texto libre. Puede ser una hora (`"07:00"`) o un evento reconocible (`"al terminar de desayunar"`). Es el "cuándo" de la situación; lo que dispara la acción es encontrar la señal, no una hora exacta. (En backups v1–v4 se deriva de la antigua `hora`.)
+- `conducta`: la conducta concreta que se ejecutará (qué/cómo exacto), no un área vaga. Es el corazón de la intención de implementación: el efecto viene de vincular una señal con una respuesta específica. En backups que no lo tenían, la migración lo rellena como `""`.
+- `lugar`: dónde ocurre (opcional). Completa el "dónde" de la situación. La migración lo rellena como `""`.
+- `tipo`: `"inicio"` (plan para arrancar algo difícil de iniciar) o `"habito"` (plan para cortar un hábito no deseado). En backups previos la migración lo rellena como `"inicio"`.
+- `enVezDe`: solo relevante en `tipo: "habito"` — la respuesta habitual que el plan sustituye ("cuando aparezca la señal, haré la conducta **en vez de** [enVezDe]"). En `tipo: "inicio"` es `""`.
+- `area`: debe corresponder al `nombre` de un área de `sentido` (el propósito activo = intención de meta al que sirve el plan). Si no coincide con ningún área viva, la UI marca el plan como **huérfano** (meta débil o abandonada) para relinkarlo o eliminarlo. No conviertas ideas en planes sin este vínculo.
 - `id`: cadena corta única dentro de su array (la app las genera con base36 aleatorio). Sirve como identidad para editar, borrar y para la fusión al importar.
-- `hora`: formato de 24 horas `HH:MM`.
 - `progreso`: campo de la revisión para registrar el progreso hecho en trabajo significativo esa semana. En backups v1 (que no lo tenían) la migración lo rellena como `""`.
 - `releido`: booleano; indica si en esa revisión se releyó el documento de sentido.
-- `hechos`: registro de cada vez que un bloque se marcó como **hecho** en una **fecha** concreta (recompensa inmediata en la pestaña Hoy, en vez de esperar a la revisión semanal). Cada entrada vincula `bloqueId` (el `id` de un bloque de `bloques`) con la `fecha` (`YYYY-MM-DD`) en que se completó. Como un bloque es una plantilla semanal recurrente, un mismo `bloqueId` puede aparecer con varias fechas (una por semana). Si un bloque se borra, sus `hechos` quedan como huérfanos inertes (no rompen nada). En backups v1/v2/v3 (que no lo tenían) la migración lo rellena como `[]`.
+- `hechos`: registro de cada vez que un plan se marcó como **cumplido** en una **fecha** concreta (percibir el avance en la pestaña Ahora, sin esperar a la revisión semanal). Cada entrada vincula `planId` (el `id` de un plan de `planes`) con la `fecha` (`YYYY-MM-DD`). Como un plan es una plantilla recurrente, un mismo `planId` puede aparecer con varias fechas. Si un plan se borra, sus `hechos` quedan como huérfanos inertes (no rompen nada). En backups v4 el `bloqueId` se renombra a `planId`; en v1/v2/v3 (que no lo tenían) la migración lo rellena como `[]`.
 - Las `ideas` y `revisiones` se muestran de más reciente a más antigua.
 
 Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
 
 ```json
 {
-  "config": { "durBloque": "60 min" },
+  "config": {},
   "sentido": {
     "vision": "Quiero construir habilidades escasas y valiosas que me den libertad para elegir en qué trabajo.",
     "areas": [
@@ -138,13 +139,13 @@ Ejemplo realista (ficticio) del contenido de `sistema-personal-v1`:
       { "id": "a2", "nombre": "Estudio", "proposito": "Estudio para pensar mejor, no solo para trabajar más." }
     ]
   },
-  "bloques": [
-    { "id": "b1", "dia": 1, "hora": "07:00", "lugar": "Escritorio", "conducta": "Leer 20 páginas y anotar 3 ideas", "area": "Estudio", "dur": "60 min" },
-    { "id": "b2", "dia": 1, "hora": "19:00", "lugar": "", "conducta": "Escribir la siguiente función y hacer commit", "area": "Proyectos", "dur": "90 min" },
-    { "id": "b3", "dia": 0, "hora": "10:00", "lugar": "", "conducta": "Escribir 5 ideas nuevas para proyectos", "area": "Ideación", "dur": "45 min" }
+  "planes": [
+    { "id": "p1", "dia": 1, "cuando": "07:00", "lugar": "Escritorio", "conducta": "Leer 20 páginas y anotar 3 ideas", "area": "Estudio", "tipo": "inicio", "enVezDe": "" },
+    { "id": "p2", "dia": 1, "cuando": "al llegar de trabajar", "lugar": "", "conducta": "Escribir la siguiente función y hacer commit", "area": "Proyectos", "tipo": "inicio", "enVezDe": "" },
+    { "id": "p3", "dia": null, "cuando": "cuando abra el navegador para trabajar", "lugar": "", "conducta": "abro primero el documento del proyecto", "area": "Proyectos", "tipo": "habito", "enVezDe": "abrir redes por costumbre" }
   ],
   "ideas": [
-    { "id": "i1", "texto": "Prototipo de app para registrar hábitos por bloques.", "fecha": "2025-02-16" }
+    { "id": "i1", "texto": "Prototipo de app para registrar planes si-entonces.", "fecha": "2025-02-16" }
   ],
   "revisiones": [
     { "id": "r1", "fecha": "2025-02-16", "progreso": "Envié la primera versión usable a un amigo.", "avance": "Cerré el módulo de export.", "siguiente": "Escribir tests del import.", "releido": true }
@@ -159,7 +160,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 ```json
 {
   "app": "sistema-personal",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "exportedAt": "2025-02-16T14:30:00.000Z",
   "data": {
     "sistema-personal-v1": { "...": "el objeto descrito arriba, ya parseado como JSON, no como string" }
@@ -170,7 +171,7 @@ El botón **Exportar** descarga `sistema-personal-backup-YYYY-MM-DD.json` con es
 Campo por campo:
 
 - `app`: constante `"sistema-personal"`. El import **rechaza** cualquier archivo cuyo `app` no sea exactamente este.
-- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `4`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
+- `schemaVersion`: entero de la versión del esquema con que se exportó (hoy `5`). El import acepta versiones **≤** a la actual de la app y las migra si hace falta; rechaza versiones mayores (más nuevas que la app).
 - `exportedAt`: fecha/hora ISO 8601 del momento del export.
 - `data`: objeto cuyas claves son **claves de localStorage** (por ahora solo `sistema-personal-v1`) y cuyos valores son el contenido **ya parseado como objeto JSON** (no strings escapados).
 
@@ -178,18 +179,19 @@ Comportamiento del **Import**:
 
 1. Valida `app` y que `schemaVersion` sea un entero soportado (≤ actual). Si no, muestra un error y no toca nada.
 2. Aplica migraciones si la versión es anterior a la actual.
-3. Muestra un resumen (cuántas áreas, bloques, ideas, revisiones) y ofrece dos modos:
+3. Muestra un resumen (cuántas áreas, planes, ideas, revisiones) y ofrece dos modos:
    - **Reemplazar todo**: borra las claves actuales de la app y escribe las del archivo.
    - **Fusionar**: conserva lo existente y agrega lo que falte. Los arrays se combinan por `id`; ante conflicto (mismo `id`) **gana el archivo importado**. La `vision` del archivo gana si no está vacía.
 
 ### Instrucciones directas para el LLM
 
-- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**4**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas (incluye `config`, `progreso` en cada revisión, y en cada bloque `conducta` —conducta concreta— y `lugar`). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 y `hora` en `HH:MM`, y vincula el `area` de cada bloque al `nombre` de un área de `sentido`. Normalmente deja `hechos` como `[]` (es un registro que la persona genera al usar la app; no lo inventes salvo que te lo pidan, y si lo incluyes, cada `bloqueId` debe coincidir con el `id` de un bloque existente). El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
-- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas), `bloques` (agenda semanal), `ideas` (capturas con fecha), `revisiones` (bitácora semanal con `progreso`) y `hechos` (bloques completados por fecha). Interpreta cada sección según su propósito descrito arriba.
+- **Si el usuario pide generar datos para importar**: produce un JSON válido con la estructura de arriba, usando el `schemaVersion` actual (**5**), `app: "sistema-personal"`, un `exportedAt` ISO y `data["sistema-personal-v1"]` con las secciones pedidas. En cada plan incluye `cuando` (la señal: una hora o un evento), `conducta` (concreta), `lugar`, `tipo` (`"inicio"` o `"habito"`) y `enVezDe` (solo con contenido si `tipo` es `"habito"`, si no `""`). Da a cada elemento de los arrays un `id` único, usa `dia` 0–6 (o `null` para "cualquier día"), y vincula el `area` de cada plan al `nombre` de un área de `sentido`. Normalmente deja `hechos` como `[]` (es un registro que la persona genera al usar la app; no lo inventes salvo que te lo pidan, y si lo incluyes, cada `planId` debe coincidir con el `id` de un plan existente). El usuario podrá cargarlo directamente con **Importar → Reemplazar/Fusionar**.
+- **Si el usuario pega un export**: dentro de `data["sistema-personal-v1"]` encontrarás `config` (preferencias), `sentido` (visión + áreas = intenciones de meta), `planes` (intenciones de implementación si-entonces), `ideas` (capturas con fecha), `revisiones` (bitácora semanal con `progreso`) y `hechos` (planes cumplidos por fecha). Interpreta cada sección según su propósito descrito arriba.
 
 ### Historial de schemaVersion
 
 - **v1**: primer esquema (`sentido`, `bloques`, `ideas`, `revisiones`).
-- **v2**: se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`): rellena `config` con la duración por defecto y `progreso: ""` en revisiones que no lo tuvieran, sin tocar el resto de los datos.
-- **v3**: cada bloque suma `conducta` (la conducta concreta y exacta a ejecutar) y `lugar` (dónde). El efecto de las intenciones de implementación depende de vincular una situación exacta con una respuesta específica, no solo un día + área. Migración v2→v3 (`MIGRATIONS[2]`): rellena `conducta: ""` y `lugar: ""` en bloques que no los tuvieran, sin tocar el resto.
-- **v4** (actual): se añade `hechos` (array de `{id, bloqueId, fecha}`): registro de cada bloque marcado como **hecho** en una fecha, para dar recompensa inmediata en la pestaña Hoy en vez de esperar a la revisión semanal (en TDAH el circuito de recompensa está hipoactivado y hay aversión a la demora). Migración v3→v4 (`MIGRATIONS[3]`): rellena `hechos: []` si no existía, sin tocar el resto.
+- **v2**: se añadió `config.durBloque` (duración por defecto de bloque, preferencia editable) y el campo `progreso` a cada revisión. Migración v1→v2 (`MIGRATIONS[1]`).
+- **v3**: cada bloque sumó `conducta` (conducta concreta) y `lugar` (dónde). Migración v2→v3 (`MIGRATIONS[2]`).
+- **v4**: se añadió `hechos` (array de `{id, bloqueId, fecha}`): registro de cada bloque marcado como hecho en una fecha. Migración v3→v4 (`MIGRATIONS[3]`).
+- **v5** (actual): **purificación al modelo de intención de implementación**. `bloques` pasa a `planes`; la `hora` (`HH:MM`) se generaliza a una señal `cuando` de texto libre (una hora *o* un evento); se retiran `dur` (duración) y `config.durBloque` porque se elimina el cronómetro (la intención de implementación automatiza el **inicio** de la acción, no su duración); cada plan suma `tipo` (`"inicio"`|`"habito"`) y `enVezDe` (la respuesta habitual que sustituye un plan de tipo hábito); `dia` admite `null` ("cualquier día · por señal"); en `hechos`, `bloqueId` pasa a `planId`. Migración v4→v5 (`MIGRATIONS[4]`): aplica toda la transformación de forma idempotente (`normalizar`), sin pérdida de datos.
